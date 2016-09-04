@@ -5,10 +5,9 @@
 pAura is a Python tool for recording audio information and analyzing its content in an online and realtime manner.
 
 ## Installation
- * Install dependencies: 
- * * Install [pyAudioAnalysis](https://github.com/tyiannak/pyAudioAnalysis/).
- * * Install alsaaudio for python: `sudo apt-get install python-alsaaudio`
- * * Install opencv for python: `sudo apt-get install python-opencv`
+ * Install [pyAudioAnalysis](https://github.com/tyiannak/pyAudioAnalysis/).
+ * Install alsaaudio for python: `sudo apt-get install python-alsaaudio`
+ * Install opencv for python: `sudo apt-get install python-opencv`
  * Clone the source of this library: 
  ```
 git clone https://github.com/tyiannak/paura.git
