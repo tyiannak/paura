@@ -11,13 +11,14 @@ import matplotlib
 import scipy.signal
 import itertools
 import operator
+import datetime
 
-matplotlib.use('TkAgg')
 allData = []
 Fs = 16000
 HeightPlot = 150  
-WidthPlot = 512
+WidthPlot = 720
 statusHeight = 150;
+minActivityDuration = 1.0
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Real time audio analysis")
@@ -29,11 +30,15 @@ def parse_arguments():
     recordAndAnalyze.add_argument("--chromagram", action="store_true", help="Show chromagram")
     recordAndAnalyze.add_argument("--spectrogram", action="store_true", help="Show spectrogram")
     recordAndAnalyze.add_argument("--recordactivity", action="store_true", help="Record detected sounds to wavs")
-
     return parser.parse_args()
 
+'''
+Utitlity functions:
+'''
 
 def loadMEANS(modelName):
+    # load pyAudioAnalysis classifier file (MEAN and STD values). 
+    # used for feature normalization
     try:
         fo = open(modelName, "rb")
     except IOError:
@@ -47,7 +52,7 @@ def loadMEANS(modelName):
     fo.close()        
     return (MEAN, STD)
 
-def most_common(L):
+def most_common(L):    
   # get an iterable of (item, iterable) pairs
   SL = sorted((x, i) for i, x in enumerate(L))
   # print 'SL:', SL
@@ -78,9 +83,14 @@ def plotCV(Fun, Width, Height, MAX):
 
     return h
 
+'''
+Basic functionality:
+'''
 def recordAudioSegments(BLOCKSIZE, showSpectrogram = False, showChromagram = False, recordActivity = False):    
     
     print "Press Ctr+C to stop recording"
+
+    startDateTimeStr = datetime.datetime.now().strftime("%Y_%m_%d_%I:%M%p")
 
     MEAN, STD = loadMEANS("svmMovies8classesMEANS")                                             # load MEAN feature values 
 
@@ -149,7 +159,7 @@ def recordAudioSegments(BLOCKSIZE, showSpectrogram = False, showChromagram = Fal
                         iSpec  = numpy.array(spectrogram.T * 255, dtype = numpy.uint8)
                         iSpec2 = cv2.resize(iSpec,(WidthPlot, HeightPlot), interpolation = cv2.INTER_CUBIC)
                         iSpec2 = cv2.applyColorMap(iSpec2, cv2.COLORMAP_JET)                    
-                        cv2.putText(iSpec2, "maxFreq: %.0f Hz" % maxFreq, (0, 11), cv2.FONT_HERSHEY_PLAIN, 1, (200,200,220))
+                        cv2.putText(iSpec2, "maxFreq: %.0f Hz" % maxFreq, (0, 11), cv2.FONT_HERSHEY_PLAIN, 1, (200,200,200))
                         cv2.imshow('Spectrogram', iSpec2)  
                         cv2.moveWindow('Spectrogram',  50, HeightPlot + statusHeight + 60)
                     
@@ -158,34 +168,37 @@ def recordAudioSegments(BLOCKSIZE, showSpectrogram = False, showChromagram = Fal
                         iChroma  = numpy.array((chromagram.T / chromagram.max()) * 255, dtype = numpy.uint8)                
                         iChroma2 = cv2.resize(iChroma,(WidthPlot, HeightPlot), interpolation = cv2.INTER_CUBIC)
                         iChroma2 = cv2.applyColorMap(iChroma2, cv2.COLORMAP_JET)
-                        cv2.putText(iChroma2, "maxFreqC: %s" % maxFreqC, (0, 11), cv2.FONT_HERSHEY_PLAIN, 1, (200,200,220))
+                        cv2.putText(iChroma2, "maxFreqC: %s" % maxFreqC, (0, 11), cv2.FONT_HERSHEY_PLAIN, 1, (200,200,200))
                         cv2.imshow('Chroma', iChroma2)
                         cv2.moveWindow('Chroma',  50, 2 * HeightPlot + statusHeight + 60)
 
                     # Activity Detection:                    
                     energy100 = (100*numpy.sum(midTermBuffer * midTermBuffer) 
                         / (midTermBuffer.shape[0] * 32000 * 32000))     
-                    if count < 10:
-                        energy100_buffer_zero.append(energy100)
-                    mean_energy100_zero = numpy.mean(numpy.array(energy100_buffer_zero))
-                    if energy100 < 1.2 * mean_energy100_zero:
-                        if curActiveWindow.shape[0] > 0:                                    # if a sound has been detected in the previous segment:
-                            activeT2 = elapsedTime                                          # set time of current active window
-                            wavFileName = "activity_{0:.2f}_{1:.2f}.wav".format(activeT1, activeT2)
-                            if recordActivity:
-                                wavfile.write(wavFileName, Fs, numpy.int16(curActiveWindow))# write current active window to file
-                            curActiveWindow = numpy.array([])                               # delete current active window
+                    if count < 10:                                                          # TODO make this param
+                        energy100_buffer_zero.append(energy100)                    
+                        mean_energy100_zero = numpy.mean(numpy.array(energy100_buffer_zero))
                     else:
-                        if curActiveWindow.shape[0] == 0:                                   # this is a new active window!
-                            activeT1 = elapsedTime - BLOCKSIZE                              # set timestamp start of new active window
-                        curActiveWindow = numpy.concatenate((curActiveWindow, midTermBuffer))                        
+                        mean_energy100_zero = numpy.mean(numpy.array(energy100_buffer_zero))
+                        if (energy100 < 1.2 * mean_energy100_zero):
+                            if curActiveWindow.shape[0] > 0:                                    # if a sound has been detected in the previous segment:
+                                activeT2 = elapsedTime - BLOCKSIZE                              # set time of current active window
+                                if activeT2 - activeT1 > minActivityDuration:
+                                    wavFileName = startDateTimeStr + "_activity_{0:.2f}_{1:.2f}.wav".format(activeT1, activeT2)
+                                    if recordActivity:
+                                        wavfile.write(wavFileName, Fs, numpy.int16(curActiveWindow))# write current active window to file
+                                curActiveWindow = numpy.array([])                               # delete current active window
+                        else:
+                            if curActiveWindow.shape[0] == 0:                                   # this is a new active window!
+                                activeT1 = elapsedTime - BLOCKSIZE                              # set timestamp start of new active window
+                            curActiveWindow = numpy.concatenate((curActiveWindow, midTermBuffer))                        
 
                     # Show status messages on Status cv winow:
                     textIm = numpy.zeros((statusHeight, WidthPlot, 3))
                     statusStrTime = "time: %.1f sec" % elapsedTime + " - data time: %.1f sec" % dataTime + " - loss : %.1f sec" % (elapsedTime-dataTime)                                        
                     statusStrFeature = "ene1:%.1f" % energy100 + " eneZero:%.1f"%mean_energy100_zero 
-                    cv2.putText(textIm, statusStrTime, (0, 11),  cv2.FONT_HERSHEY_PLAIN, 1, (200,200,220))
-                    cv2.putText(textIm, statusStrFeature, (0, 22), cv2.FONT_HERSHEY_PLAIN, 1, (200,200,220))
+                    cv2.putText(textIm, statusStrTime, (0, 11),  cv2.FONT_HERSHEY_PLAIN, 1, (200,200,200))
+                    cv2.putText(textIm, statusStrFeature, (0, 22), cv2.FONT_HERSHEY_PLAIN, 1, (200,200,200))
                     if curActiveWindow.shape[0] > 0:
                         cv2.putText(textIm, "sound", (0, 33), cv2.FONT_HERSHEY_PLAIN, 1, (0,0,255))                   
                     else:
