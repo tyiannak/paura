@@ -12,6 +12,7 @@ import scipy.signal
 import itertools
 import operator
 import datetime
+import signal
 
 allData = []
 Fs = 16000
@@ -19,6 +20,12 @@ HeightPlot = 150
 WidthPlot = 720
 statusHeight = 150;
 minActivityDuration = 1.0
+
+def signal_handler(signal, frame):
+    wavfile.write("output.wav", Fs, numpy.int16(allData))  # write final buffer to wav file
+    print('You pressed Ctrl+C!')
+    sys.exit(0)
+signal.signal(signal.SIGINT, signal_handler)
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Real time audio analysis")
@@ -103,6 +110,7 @@ def recordAudioSegments(BLOCKSIZE, showSpectrogram = False, showChromagram = Fal
     midTermBuffer = []
     curWindow = []    
     count = 0
+    global allData
     allData = []
     energy100_buffer_zero = []
     curActiveWindow = numpy.array([])    
@@ -131,7 +139,7 @@ def recordAudioSegments(BLOCKSIZE, showSpectrogram = False, showChromagram = Fal
                     # mtF, _ = aF.mtFeatureExtraction(midTermBuffer, Fs, BLOCKSIZE * Fs, BLOCKSIZE * Fs, 0.050 * Fs, 0.050 * Fs)                    
                     # curFV = (mtF - MEAN) / STD
                     # TODO
-                    
+                    allData += midTermBuffer                    
                     midTermBuffer = numpy.double(midTermBuffer)                                 # convert current buffer to numpy array                    
 
                     # Compute spectrogram
@@ -208,7 +216,7 @@ def recordAudioSegments(BLOCKSIZE, showSpectrogram = False, showChromagram = Fal
                     midTermBuffer = []
                     ch = cv2.waitKey(10)
                     count += 1
-    
+                        
 
 if __name__ == "__main__":
     args = parse_arguments()
