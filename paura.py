@@ -15,11 +15,11 @@ import datetime
 import signal
 
 allData = []
-Fs = 16000
 HeightPlot = 150  
 WidthPlot = 720
 statusHeight = 150;
 minActivityDuration = 1.0
+Fs = 16000
 
 def signal_handler(signal, frame):
     wavfile.write("output.wav", Fs, numpy.int16(allData))  # write final buffer to wav file
@@ -34,6 +34,7 @@ def parse_arguments():
 
     recordAndAnalyze = tasks.add_parser("recordAndAnalyze", help="Get audio data from mic and analyze")
     recordAndAnalyze.add_argument("-bs", "--blocksize", type=float, choices=[0.1, 0.2, 0.3, 0.4, 0.5], default=0.20, help="Recording block size")
+    recordAndAnalyze.add_argument("-fs", "--samplingrate", type=int, choices=[4000, 8000, 16000, 32000, 44100], default=16000, help="Recording block size")
     recordAndAnalyze.add_argument("--chromagram", action="store_true", help="Show chromagram")
     recordAndAnalyze.add_argument("--spectrogram", action="store_true", help="Show spectrogram")
     recordAndAnalyze.add_argument("--recordactivity", action="store_true", help="Record detected sounds to wavs")
@@ -93,7 +94,7 @@ def plotCV(Fun, Width, Height, MAX):
 '''
 Basic functionality:
 '''
-def recordAudioSegments(BLOCKSIZE, showSpectrogram = False, showChromagram = False, recordActivity = False):    
+def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChromagram = False, recordActivity = False):    
     
     print "Press Ctr+C to stop recording"
 
@@ -221,4 +222,6 @@ def recordAudioSegments(BLOCKSIZE, showSpectrogram = False, showChromagram = Fal
 if __name__ == "__main__":
     args = parse_arguments()
     if args.task == "recordAndAnalyze":
-        recordAudioSegments(args.blocksize, args.spectrogram, args.chromagram, args.recordactivity)        
+        global Fs
+        Fs = args.samplingrate
+        recordAudioSegments(args.blocksize, args.samplingrate, args.spectrogram, args.chromagram, args.recordactivity)        
