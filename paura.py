@@ -1,11 +1,8 @@
 import sys, os, alsaaudio, time, audioop, numpy, glob,  scipy, subprocess, wave, cPickle, threading, shutil, cv2
 import argparse
-import matplotlib.pyplot as plt
 import scipy.io.wavfile as wavfile
 from scipy.fftpack import rfft
 from pyAudioAnalysis import audioFeatureExtraction as aF    
-from pyAudioAnalysis import audioTrainTest as aT
-from pyAudioAnalysis import audioSegmentation as aS
 from scipy.fftpack import fft
 import matplotlib
 import scipy.signal
