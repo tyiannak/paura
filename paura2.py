@@ -53,7 +53,7 @@ def loadMEANS(modelName):
     try:
         fo = open(modelName, "rb")
     except IOError:
-            print "Load Model: Didn't find file"
+            print("Load Model: Didn't find file")
             return
     try:
         MEAN = cPickle.load(fo)
@@ -101,7 +101,7 @@ def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChro
 
     midTermBufferSize = int(Fs*BLOCKSIZE)
 
-    print "Press Ctr+C to stop recording"
+    print ("Press Ctr+C to stop recording")
 
     startDateTimeStr = datetime.datetime.now().strftime("%Y_%m_%d_%I:%M%p")
 
@@ -218,12 +218,11 @@ def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChro
                     ch = cv2.waitKey(10)
                     count += 1
 
-            except IOError, e:
+            except (IOError, e):
                 print( "(%d) Error recording: %s"%(errorcount,e) )                         
 
 if __name__ == "__main__":
     args = parse_arguments()
     if args.task == "recordAndAnalyze":
-        global Fs
         Fs = args.samplingrate
         recordAudioSegments(args.blocksize, args.samplingrate, args.spectrogram, args.chromagram, args.recordactivity)        
