@@ -47,7 +47,7 @@ def loadMEANS(modelName):
     try:
         fo = open(modelName, "rb")
     except IOError:
-            print "Load Model: Didn't find file"
+            print ("Load Model: Didn't find file")
             return
     try:
         MEAN = cPickle.load(fo)
@@ -93,7 +93,7 @@ Basic functionality:
 '''
 def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChromagram = False, recordActivity = False):    
     
-    print "Press Ctr+C to stop recording"
+    print ("Press Ctr+C to stop recording")
 
     startDateTimeStr = datetime.datetime.now().strftime("%Y_%m_%d_%I:%M%p")
 
@@ -219,6 +219,5 @@ def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChro
 if __name__ == "__main__":
     args = parse_arguments()
     if args.task == "recordAndAnalyze":
-        global Fs
         Fs = args.samplingrate
         recordAudioSegments(args.blocksize, args.samplingrate, args.spectrogram, args.chromagram, args.recordactivity)        
