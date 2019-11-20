@@ -1,4 +1,4 @@
-import sys, os, time, numpy, glob,  scipy, subprocess, wave, cPickle, threading, shutil, cv2
+import sys, os, time, numpy, glob,  scipy, subprocess, wave, pickle, threading, shutil, cv2
 import argparse
 import scipy.io.wavfile as wavfile
 from scipy.fftpack import rfft
@@ -14,6 +14,7 @@ import signal
 import pyaudio      # PORT-AUDIO-BASED
 import struct
 import math
+from cv2 import cv2
 
 Fs = 16000
 
@@ -53,11 +54,11 @@ def loadMEANS(modelName):
     try:
         fo = open(modelName, "rb")
     except IOError:
-            print "Load Model: Didn't find file"
+            print("Load Model: Didn't find file")
             return
     try:
-        MEAN = cPickle.load(fo)
-        STD = cPickle.load(fo)
+        MEAN = pickle.load(fo)
+        STD = pickle.load(fo)
     except:
         fo.close()
     fo.close()        
@@ -90,7 +91,7 @@ def plotCV(Fun, Width, Height, MAX):
     hist = numpy.int32(numpy.around(hist_item))
 
     for x,y in enumerate(hist):        
-            cv2.line(h,(x,Height/2),(x,Height-y),(255,0,255))        
+            cv2.line(h,(x,int(Height/2)),(x,Height-y),(255,0,255))        
 
     return h
 
@@ -101,7 +102,7 @@ def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChro
 
     midTermBufferSize = int(Fs*BLOCKSIZE)
 
-    print "Press Ctr+C to stop recording"
+    print("Press Ctr+C to stop recording")
 
     startDateTimeStr = datetime.datetime.now().strftime("%Y_%m_%d_%I:%M%p")
 
@@ -125,7 +126,7 @@ def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChro
     timeStart = time.time()
 
     while 1:            
-            try:                                                   
+#            try:                                                   
                 block = stream.read(midTermBufferSize)   
                 countB = len(block)/2
                 format = "%dh"%(countB)
@@ -133,7 +134,7 @@ def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChro
                 curWindow = list(shorts)
                 midTermBuffer = midTermBuffer + curWindow;                                      # copy to midTermBuffer
                 del(curWindow)
-                #print len(midTermBuffer), midTermBufferSize
+                #print(len(midTermBuffer), midTermBufferSize)
                 #if len(midTermBuffer) == midTermBufferSize:                                     # if midTermBuffer is full:
                 if 1:
                     elapsedTime = (time.time() - timeStart)                                     # time since recording started
@@ -218,12 +219,12 @@ def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChro
                     ch = cv2.waitKey(10)
                     count += 1
 
-            except IOError, e:
-                print( "(%d) Error recording: %s"%(errorcount,e) )                         
+#            except IOError, e:
+#                print( "(%d) Error recording: %s"%(errorcount,e) )                         
 
 if __name__ == "__main__":
     args = parse_arguments()
     if args.task == "recordAndAnalyze":
-        global Fs
-        Fs = args.samplingrate
+        #global Fs
+        #Fs = args.samplingrate
         recordAudioSegments(args.blocksize, args.samplingrate, args.spectrogram, args.chromagram, args.recordactivity)        
