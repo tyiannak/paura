@@ -1,8 +1,8 @@
-import sys, os, time, numpy, glob,  scipy, subprocess, wave, cPickle, threading, shutil, cv2
+import sys, os, time, numpy, glob,  scipy, subprocess, wave, threading, shutil, cv2
 import argparse
 import scipy.io.wavfile as wavfile
 from scipy.fftpack import rfft
-from pyAudioAnalysis import audioFeatureExtraction as aF    
+from pyAudioAnalysis import ShortTermFeatures as sF
 from pyAudioAnalysis import audioTrainTest as aT
 from pyAudioAnalysis import audioSegmentation as aS
 from scipy.fftpack import fft
@@ -15,6 +15,7 @@ import pyaudio      # PORT-AUDIO-BASED
 import struct
 import math
 
+global Fs
 Fs = 16000
 
 FORMAT = pyaudio.paInt16 
@@ -47,26 +48,9 @@ def parse_arguments():
 Utitlity functions:
 '''
 
-def loadMEANS(modelName):
-    # load pyAudioAnalysis classifier file (MEAN and STD values). 
-    # used for feature normalization
-    try:
-        fo = open(modelName, "rb")
-    except IOError:
-            print "Load Model: Didn't find file"
-            return
-    try:
-        MEAN = cPickle.load(fo)
-        STD = cPickle.load(fo)
-    except:
-        fo.close()
-    fo.close()        
-    return (MEAN, STD)
-
 def most_common(L):    
   # get an iterable of (item, iterable) pairs
   SL = sorted((x, i) for i, x in enumerate(L))
-  # print 'SL:', SL
   groups = itertools.groupby(SL, key=operator.itemgetter(0))
   # auxiliary function to get "quality" for an item
   def _auxfun(g):
@@ -76,7 +60,6 @@ def most_common(L):
     for _, where in iterable:
       count += 1
       min_index = min(min_index, where)
-    # print 'item %r, count %r, minind %r' % (item, count, min_index)
     return count, -min_index
   # pick the highest-count/earliest item
   return max(groups, key=_auxfun)[0]
@@ -90,7 +73,8 @@ def plotCV(Fun, Width, Height, MAX):
     hist = numpy.int32(numpy.around(hist_item))
 
     for x,y in enumerate(hist):        
-            cv2.line(h,(x,Height/2),(x,Height-y),(255,0,255))        
+            cv2.line(h, (x, int(Height/2)),
+                     (x, Height-y), (255, 0 ,255))
 
     return h
 
@@ -101,11 +85,11 @@ def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChro
 
     midTermBufferSize = int(Fs*BLOCKSIZE)
 
-    print "Press Ctr+C to stop recording"
+    print("Press Ctr+C to stop recording")
 
     startDateTimeStr = datetime.datetime.now().strftime("%Y_%m_%d_%I:%M%p")
 
-    MEAN, STD = loadMEANS("svmMovies8classesMEANS")                                             # load MEAN feature values 
+    #MEAN, STD = loadMEANS("svmMovies8classesMEANS")                                             # load MEAN feature values
 
     pa = pyaudio.PyAudio()                             
                                                        
@@ -133,8 +117,6 @@ def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChro
                 curWindow = list(shorts)
                 midTermBuffer = midTermBuffer + curWindow;                                      # copy to midTermBuffer
                 del(curWindow)
-                #print len(midTermBuffer), midTermBufferSize
-                #if len(midTermBuffer) == midTermBufferSize:                                     # if midTermBuffer is full:
                 if 1:
                     elapsedTime = (time.time() - timeStart)                                     # time since recording started
                     dataTime  = (count+1) * BLOCKSIZE                                           # data-driven time
@@ -148,7 +130,7 @@ def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChro
 
                     # Compute spectrogram
                     if showSpectrogram:                                                         
-                        (spectrogram, TimeAxisS, FreqAxisS) = aF.stSpectogram(midTermBuffer, Fs, 0.020 * Fs, 0.02 * Fs) # extract spectrogram
+                        (spectrogram, TimeAxisS, FreqAxisS) = sF.spectrogram(midTermBuffer, Fs, 0.020 * Fs, 0.02 * Fs) # extract spectrogram
                         FreqAxisS = numpy.array(FreqAxisS)                                      # frequency axis
                         DominantFreqs = FreqAxisS[numpy.argmax(spectrogram, axis = 1)]          # most dominant frequencies (for each short-term window)
                         maxFreq     = numpy.mean(DominantFreqs)                                 # get average most dominant freq
@@ -156,7 +138,7 @@ def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChro
                     
                     # Compute chromagram                        
                     if showChromagram:                                                          
-                        (chromagram, TimeAxisC, FreqAxisC) = aF.stChromagram(midTermBuffer, Fs, 0.020 * Fs, 0.02 * Fs)  # get chromagram
+                        (chromagram, TimeAxisC, FreqAxisC) = sF.chromagram(midTermBuffer, Fs, 0.020 * Fs, 0.02 * Fs)  # get chromagram
                         FreqAxisC = numpy.array(FreqAxisC)                                      # frequency axis (12 chroma classes)
                         DominantFreqsC = FreqAxisC[numpy.argmax(chromagram, axis = 1)]          # most dominant chroma classes 
                         maxFreqC = most_common(DominantFreqsC)[0]                               # get most common among all short-term windows
@@ -218,12 +200,11 @@ def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChro
                     ch = cv2.waitKey(10)
                     count += 1
 
-            except IOError, e:
-                print( "(%d) Error recording: %s"%(errorcount,e) )                         
+            except IOError:
+                print( "(%d) Error recording: %s"%(errorcount) )
 
 if __name__ == "__main__":
     args = parse_arguments()
     if args.task == "recordAndAnalyze":
-        global Fs
         Fs = args.samplingrate
         recordAudioSegments(args.blocksize, args.samplingrate, args.spectrogram, args.chromagram, args.recordactivity)        
