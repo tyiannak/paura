@@ -1,6 +1,9 @@
 
 # pAura: Python Audio Recorder and Analyzer
 
+## News
+ * [2020/01/02] paura2.py python3 support added 
+
 ## General
 pAura is a Python tool for recording audio information and analyzing its content in an online and realtime manner.
 
