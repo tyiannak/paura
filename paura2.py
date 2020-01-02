@@ -156,7 +156,7 @@ def recordAudioSegments(BLOCKSIZE, Fs=16000,
                 if showSpectrogram:
                     (spectrogram, TimeAxisS, FreqAxisS) = sF.spectrogram(
                         midTermBuffer, Fs, 0.020 * Fs,
-                        0.02 * Fs)  # extract spectrogram
+                                           0.02 * Fs)  # extract spectrogram
                     FreqAxisS = numpy.array(FreqAxisS)  # frequency axis
                     # most dominant frequencies (for each short-term window):
                     DominantFreqs = FreqAxisS[numpy.argmax(spectrogram,
@@ -168,16 +168,16 @@ def recordAudioSegments(BLOCKSIZE, Fs=16000,
                 if showChromagram:
                     (chromagram, TimeAxisC, FreqAxisC) = sF.chromagram(
                         midTermBuffer, Fs, 0.020 * Fs,
-                        0.02 * Fs)  # get chromagram
+                                           0.02 * Fs)  # get chromagram
                     FreqAxisC = numpy.array(
                         FreqAxisC)  # frequency axis (12 chroma classes)
                     # most dominant chroma classes:
                     DominantFreqsC = FreqAxisC[numpy.argmax(chromagram,
                                                             axis=1)]
-                    maxFreqC = most_common(DominantFreqsC)[
-                        0]  # get most common among all short-term windows
+                    # get most common among all short-term windows
+                    maxFreqC = most_common(DominantFreqsC)[0]
 
-                # Plot signal window
+                    # Plot signal window
                 signalPlotCV = plotCV(
                     scipy.signal.resample(midTermBuffer + 16000, WidthPlot),
                     WidthPlot, HeightPlot, 32000)
@@ -196,9 +196,9 @@ def recordAudioSegments(BLOCKSIZE, Fs=16000,
                                    HeightPlot + statusHeight + 60)
                 # Show chromagram
                 if showChromagram:
-                    iChroma = numpy.array(
-                        (chromagram.T / chromagram.max()) * 255,
-                        dtype=numpy.uint8)
+                    iChroma = numpy.array((chromagram.T / 
+                                           chromagram.max()) * 255,
+                                          dtype=numpy.uint8)
                     iChroma2 = cv2.resize(iChroma, (WidthPlot, HeightPlot),
                                           interpolation=cv2.INTER_CUBIC)
                     iChroma2 = cv2.applyColorMap(iChroma2, cv2.COLORMAP_JET)
