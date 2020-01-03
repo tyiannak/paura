@@ -138,7 +138,7 @@ def recordAudioSegments(block_size, Fs=16000,
             shorts = struct.unpack(format, block)
             cur_win = list(shorts)
             mid_buf = mid_buf + cur_win;  # copy to mid_buf
-            del (cur_win)
+            del cur_win
             if 1:
                 # time since recording started:
                 e_time = (time.time() - time_start)
@@ -185,26 +185,27 @@ def recordAudioSegments(block_size, Fs=16000,
                 cv2.moveWindow('Signal', 50, status_h + 50)
                 # Show spectrogram
                 if show_spec:
-                    iSpec = numpy.array(spec.T * 255, dtype=numpy.uint8)
-                    iSpec2 = cv2.resize(iSpec, (plot_w, plot_h),
+                    i_spec = numpy.array(spec.T * 255, dtype=numpy.uint8)
+                    i_spec2 = cv2.resize(i_spec, (plot_w, plot_h),
                                         interpolation=cv2.INTER_CUBIC)
-                    iSpec2 = cv2.applyColorMap(iSpec2, cv2.COLORMAP_JET)
-                    cv2.putText(iSpec2, "max_freq: %.0f Hz" % max_freq, (0, 11),
-                                cv2.FONT_HERSHEY_PLAIN, 1, (200, 200, 200))
-                    cv2.imshow('Spectrogram', iSpec2)
+                    i_spec2 = cv2.applyColorMap(i_spec2, cv2.COLORMAP_JET)
+                    cv2.putText(i_spec2, "max_freq: %.0f Hz" % max_freq, 
+                                (0, 11), cv2.FONT_HERSHEY_PLAIN, 
+                                1, (200, 200, 200))
+                    cv2.imshow('Spectrogram', i_spec2)
                     cv2.moveWindow('Spectrogram', 50,
                                    plot_h + status_h + 60)
                 # Show chromagram
                 if show_chroma:
-                    iChroma = numpy.array((chrom.T /
+                    i_chroma = numpy.array((chrom.T /
                                            chrom.max()) * 255,
                                           dtype=numpy.uint8)
-                    iChroma2 = cv2.resize(iChroma, (plot_w, plot_h),
+                    i_chroma2 = cv2.resize(i_chroma, (plot_w, plot_h),
                                           interpolation=cv2.INTER_CUBIC)
-                    iChroma2 = cv2.applyColorMap(iChroma2, cv2.COLORMAP_JET)
-                    cv2.putText(iChroma2, "max_freqC: %s" % max_freqC, (0, 11),
+                    i_chroma2 = cv2.applyColorMap(i_chroma2, cv2.COLORMAP_JET)
+                    cv2.putText(i_chroma2, "max_freqC: %s" % max_freqC, (0, 11),
                                 cv2.FONT_HERSHEY_PLAIN, 1, (200, 200, 200))
-                    cv2.imshow('Chroma', iChroma2)
+                    cv2.imshow('Chroma', i_chroma2)
                     cv2.moveWindow('Chroma', 50,
                                    2 * plot_h + status_h + 60)
                 # Activity Detection:
