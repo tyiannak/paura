@@ -44,9 +44,8 @@ def parse_arguments():
                                         help="Get audio data "
                                              "from mic and analyze")
     recordAndAnalyze.add_argument("-bs", "--blocksize",
-                                  type=float, choices=[0.1, 0.2, 0.3, 0.4, 0.5,
-                                                       1],
-                                  default=0.20, help="Recording block size")
+                                  type=float, choices=[0.25, 0.5, 0.75, 1],
+                                  default=1, help="Recording block size")
     recordAndAnalyze.add_argument("-fs", "--samplingrate", type=int,
                                   choices=[4000, 8000, 16000, 32000, 44100],
                                   default=16000, help="Recording block size")
@@ -124,7 +123,6 @@ def recordAudioSegments(block_size, Fs=16000,
                      frames_per_buffer=mid_buf_size)
 
     mid_buf = []
-    cur_win = []
     count = 0
     global all_data
     all_data = []
@@ -139,7 +137,7 @@ def recordAudioSegments(block_size, Fs=16000,
             format = "%dh" % (count_b)
             shorts = struct.unpack(format, block)
             cur_win = list(shorts)
-            mid_buf = mid_buf + cur_win;  # copy to mid_buf
+            mid_buf = mid_buf + cur_win
             del cur_win
 
             if 1:
@@ -148,12 +146,11 @@ def recordAudioSegments(block_size, Fs=16000,
                 # data-driven time
                 data_time = (count + 1) * block_size
                 wavfile.write("temp.wav", Fs, numpy.int16(mid_buf))
-                print(len(mid_buf))
                 flags, classes, _, _ = aS.mtFileClassification("temp.wav",
                                                                "model",
                                                                "svm",
                                                                False, "")
-                print(classes[int(flags[-1])])
+                current_class = classes[int(flags[-1])]
 
                 all_data += mid_buf
                 mid_buf = numpy.double(mid_buf)
@@ -170,6 +167,7 @@ def recordAudioSegments(block_size, Fs=16000,
                     # get average most dominant freq
                     max_freq = numpy.mean(dominant_freqs)
                     max_freq_std = numpy.std(dominant_freqs)
+
                 # Compute chromagram                        
                 if show_chroma:
                     (chrom, TimeAxisC, freq_axis_c) = sF.chromagram(mid_buf, 
@@ -189,6 +187,7 @@ def recordAudioSegments(block_size, Fs=16000,
                                       plot_w, plot_h, 32000)
                 cv2.imshow('Signal', signalPlotCV)
                 cv2.moveWindow('Signal', 50, status_h + 50)
+
                 # Show spectrogram
                 if show_spec:
                     i_spec = numpy.array(spec.T * 255, dtype=numpy.uint8)
@@ -204,17 +203,20 @@ def recordAudioSegments(block_size, Fs=16000,
                 # Show chromagram
                 if show_chroma:
                     i_chroma = numpy.array((chrom.T /
-                                           chrom.max()) * 255,
-                                          dtype=numpy.uint8)
+                                            chrom.max()) * 255,
+                                           dtype=numpy.uint8)
                     i_chroma2 = cv2.resize(i_chroma, (plot_w, plot_h),
-                                          interpolation=cv2.INTER_CUBIC)
+                                           interpolation=cv2.INTER_CUBIC)
                     i_chroma2 = cv2.applyColorMap(i_chroma2, cv2.COLORMAP_JET)
                     cv2.putText(i_chroma2, "max_freqC: %s" % max_freqC, (0, 11),
                                 cv2.FONT_HERSHEY_PLAIN, 1, (200, 200, 200))
                     cv2.imshow('Chroma', i_chroma2)
                     cv2.moveWindow('Chroma', 50,
                                    2 * plot_h + status_h + 60)
+
                 # Activity Detection:
+                print(e_time, current_class)
+                # TODO: REPLACE THIS CODE WITH CLASS - BASED DETECTION
                 energy_100 = (100 * numpy.sum(mid_buf * mid_buf)
                              / (mid_buf.shape[0] * 32000 * 32000))
                 if count < 10:  # TODO make this param
