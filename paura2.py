@@ -2,6 +2,7 @@ import sys, time, numpy, scipy, cv2
 import argparse
 import scipy.io.wavfile as wavfile
 from pyAudioAnalysis import ShortTermFeatures as sF
+from pyAudioAnalysis import audioSegmentation as aS
 import scipy.signal
 import itertools
 import operator
@@ -43,7 +44,8 @@ def parse_arguments():
                                         help="Get audio data "
                                              "from mic and analyze")
     recordAndAnalyze.add_argument("-bs", "--blocksize",
-                                  type=float, choices=[0.1, 0.2, 0.3, 0.4, 0.5],
+                                  type=float, choices=[0.1, 0.2, 0.3, 0.4, 0.5,
+                                                       1],
                                   default=0.20, help="Recording block size")
     recordAndAnalyze.add_argument("-fs", "--samplingrate", type=int,
                                   choices=[4000, 8000, 16000, 32000, 44100],
@@ -139,16 +141,20 @@ def recordAudioSegments(block_size, Fs=16000,
             cur_win = list(shorts)
             mid_buf = mid_buf + cur_win;  # copy to mid_buf
             del cur_win
+
             if 1:
                 # time since recording started:
                 e_time = (time.time() - time_start)
                 # data-driven time
                 data_time = (count + 1) * block_size
+                wavfile.write("temp.wav", Fs, numpy.int16(mid_buf))
+                print(len(mid_buf))
+                flags, classes, _, _ = aS.mtFileClassification("temp.wav",
+                                                               "model",
+                                                               "svm",
+                                                               False, "")
+                print(classes[int(flags[-1])])
 
-                # TODO
-                # mtF, _ = aF.mtFeatureExtraction(mid_buf, Fs, block_size * Fs, block_size * Fs, 0.050 * Fs, 0.050 * Fs)
-                # curFV = (mtF - MEAN) / STD
-                # TODO
                 all_data += mid_buf
                 mid_buf = numpy.double(mid_buf)
 
