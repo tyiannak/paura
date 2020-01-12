@@ -160,7 +160,7 @@ def recordAudioSegments(block_size, Fs=16000,
                     (spec, t_axis, freq_axis_s) = sF.spectrogram(mid_buf, 
                                                                  Fs, 
                                                                  0.020 * Fs, 
-                                                                 0.02 * Fs)
+                                                                 0.020 * Fs)
                     freq_axis_s = numpy.array(freq_axis_s)  # frequency axis
                     # most dominant frequencies (for each short-term window):
                     dominant_freqs = freq_axis_s[numpy.argmax(spec, axis=1)]
@@ -173,7 +173,7 @@ def recordAudioSegments(block_size, Fs=16000,
                     (chrom, TimeAxisC, freq_axis_c) = sF.chromagram(mid_buf, 
                                                                     Fs, 
                                                                     0.020 * Fs,
-                                                                    0.02 * Fs)  
+                                                                    0.020 * Fs)
                     freq_axis_c = numpy.array(freq_axis_c)  
                     # most dominant chroma classes:
                     dominant_freqsC = freq_axis_c[numpy.argmax(chrom,
@@ -216,56 +216,15 @@ def recordAudioSegments(block_size, Fs=16000,
 
                 # Activity Detection:
                 print(e_time, current_class)
-                # TODO: REPLACE THIS CODE WITH CLASS - BASED DETECTION
-                energy_100 = (100 * numpy.sum(mid_buf * mid_buf)
-                             / (mid_buf.shape[0] * 32000 * 32000))
-                if count < 10:  # TODO make this param
-                    energy_100_buffer_zero.append(energy_100)
-                    mean_energy_100_zero = numpy.mean(
-                        numpy.array(energy_100_buffer_zero))
-                else:
-                    mean_energy_100_zero = numpy.mean(
-                        numpy.array(energy_100_buffer_zero))
-                    if (energy_100 < 1.2 * mean_energy_100_zero):
-                        # if a sound has been detected in the previous segment:
-                        if cur_active_win.shape[0] > 0:
-                            # set time of current active window
-                            active_t2 = e_time - block_size
-                            if active_t2 - active_t1 > min_act_dur:
-                                wav_fname = start_time_str + \
-                                              "_activity_{0:.2f}" \
-                                              "_{1:.2f}.wav".format(active_t1,
-                                                                    active_t2)
-                                if rec_activity:
-                                    # write current active window to file
-                                    wavfile.write(wav_fname, Fs, numpy.int16(
-                                        cur_active_win))
-                            # delete current active window:
-                            cur_active_win = numpy.array([])
-                    else:
-                        if cur_active_win.shape[0] == 0:
-                            # if this is a new active window!
-                            active_t1 = e_time - block_size
-                            # set timestamp start of new active window
-                        cur_active_win = numpy.concatenate(
-                            (cur_active_win, mid_buf))
-                        # Show status messages on Status cv winow:
+
                 textIm = numpy.zeros((status_h, plot_w, 3))
                 statusStrTime = "time: %.1f sec" % e_time + \
                                 " - data time: %.1f sec" % data_time + \
                                 " - loss : %.1f sec" % (e_time - data_time)
-                statusStrFeature = "ene1:%.1f" % energy_100 + \
-                                   " eneZero:%.1f" % mean_energy_100_zero
                 cv2.putText(textIm, statusStrTime, (0, 11),
                             cv2.FONT_HERSHEY_PLAIN, 1, (200, 200, 200))
-                cv2.putText(textIm, statusStrFeature, (0, 22),
-                            cv2.FONT_HERSHEY_PLAIN, 1, (200, 200, 200))
-                if cur_active_win.shape[0] > 0:
-                    cv2.putText(textIm, "sound", (0, 33),
-                                cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255))
-                else:
-                    cv2.putText(textIm, "silence", (0, 33),
-                                cv2.FONT_HERSHEY_PLAIN, 1, (200, 200, 220))
+                cv2.putText(textIm, current_class, (0, 33),
+                            cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255))
                 cv2.imshow("Status", textIm)
                 cv2.moveWindow("Status", 50, 0)
                 mid_buf = []
