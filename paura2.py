@@ -102,7 +102,7 @@ Core functionality:
 """
 
 
-def recordAudioSegments(block_size, Fs=16000,
+def record_audio(block_size, Fs=8000,
                         show_spec=False,
                         show_chroma=False,
                         rec_activity=False):
@@ -126,8 +126,6 @@ def recordAudioSegments(block_size, Fs=16000,
     count = 0
     global all_data
     all_data = []
-    energy_100_buffer_zero = []
-    cur_active_win = numpy.array([])
     time_start = time.time()
 
     while 1:
@@ -176,10 +174,10 @@ def recordAudioSegments(block_size, Fs=16000,
                                                                     0.020 * Fs)
                     freq_axis_c = numpy.array(freq_axis_c)  
                     # most dominant chroma classes:
-                    dominant_freqsC = freq_axis_c[numpy.argmax(chrom,
+                    dominant_freqs_c = freq_axis_c[numpy.argmax(chrom,
                                                                axis=1)]
                     # get most common among all short-term windows
-                    max_freqC = most_common(dominant_freqsC)[0]
+                    max_freqC = most_common(dominant_freqs_c)[0]
 
                 # Plot signal window
                 signalPlotCV = plotCV(scipy.signal.resample(mid_buf + 16000, 
@@ -238,5 +236,5 @@ if __name__ == "__main__":
     args = parse_arguments()
     if args.task == "recordAndAnalyze":
         Fs = args.samplingrate
-        recordAudioSegments(args.blocksize, args.samplingrate, args.spectrogram,
+        record_audio(args.blocksize, args.samplingrate, args.spectrogram,
                             args.chromagram, args.recordactivity)
