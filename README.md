@@ -1,5 +1,5 @@
 
-# pAura: Python Audio Recorder and Analyzer
+# pAura: Python AUdio Recording and Analysis
 
 ## News
  * [2020/01/02] paura2.py python3 support added 
