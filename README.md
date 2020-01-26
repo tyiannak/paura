@@ -31,27 +31,67 @@ git clone https://github.com/tyiannak/paura.git
 git clone https://github.com/tyiannak/paura.git
 ```
 
-## Command line execution
-The following command records audio data using blocks of 1sec. 
-For each block, the spectrogram and chromagram are plotted, 
-along with the raw samples (waveform). 
-Also, a simple activity detection is performed and each non-silent segment is 
-stored in a WAV file. Successive blocks are merged to a single WAV file.
+## Execution and outputs
+
+### Execution example
+The following command records audio data using blocks of 1sec (segments). 
 
 ```
  python3 paura2.py --blocksize 1.0 --spectrogram --chromagram --record_segments --record_all
 ```
+
+### Outputs
+For each segment, the script:
+1) Visualizes the spectrogram, chromagram  along with the raw samples (waveform)
+2) Applies a simple audio classifier that distinguishes between 4 classes namely
+ silence, speech, music and other sounds.
+
+### Outputs formats
+
+The predictions are printed in the console in the form of timestamp 
+(segment starting point in seconds, counting from the recording starting time) 
+and class label (silence, music, speech or other), e.g.
+```
+1.65 silence
+2.68 other
+3.70 silence
+4.72 other
+5.65 speech
+6.67 other
+...
+```
+
+Also, the waveform, spectrograms and chromagrams are visualized in dedicated 
+plots. 
+
+If the `--record_segments` flag is provided, 
+each segment is saved in a folder named by the starting timestamp of the 
+recording session, and has a filename indicated by its relative timestamp from 
+the recording starting time, e.g. for the above example:
+```
+⇒ ls -1 2020_01_26_11:16PM_segments 
+0001.65_silence.wav
+0002.68_other.wav
+0003.70_silence.wav
+0004.72_other.wav
+0005.65_speech.wav
+0006.67_other.wav
+...
+```
+
+Finally, if `--record_all` is provided, the whole recording is saved in a 
+singe audio file. Not to be used for very long recordings (many hours), due to 
+memory issues. In the above example, the overall audio recording is stored in 
+`2020_01_26_11:16PM.wav`
 
 
 ## Ongoing work
 Merge Linux and MacOs in a single file
 
 ## Author
-<img src="http://users.iit.demokritos.gr/~tyianak/files/me.jpg" align="left" height="100"/>
+<img src="https://tyiannak.github.io/files/3.JPG" align="left" height="100"/>
 
-[Theodoros Giannakopoulos] (http://www.di.uoa.gr/~tyiannak), 
-Postdoc researcher at NCSR Demokritos, 
-Athens,
-Greece
+[Theodoros Giannakopoulos](https://tyiannak.github.io),
+Director of Machine Learning at [Behavioral Signals](https://behavioralsignals.com)
 
 
