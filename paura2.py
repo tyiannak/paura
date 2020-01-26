@@ -33,7 +33,6 @@ def signal_handler(signal, frame):
     # write final buffer to wav file
     if len(all_data) > 1:
         wavfile.write(outstr + ".wav", Fs, numpy.int16(all_data))
-    print('You pressed Ctrl+C!')
     sys.exit(0)
 
 
@@ -89,7 +88,6 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
                  log_sounds=False, logs_all=False):
 
     mid_buf_size = int(Fs * block_size)
-    print("Press Ctr+C to stop recording")
     pa = pyaudio.PyAudio()
     stream = pa.open(format=FORMAT, channels=1, rate=Fs,
                      input=True, frames_per_buffer=mid_buf_size)
@@ -189,13 +187,12 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
                                    2 * plot_h + status_h + 60)
 
                 # Activity Detection:
-                print(e_time, current_class)
+                print("{0:.2f}".format(e_time), current_class)
                 if log_sounds:
                     # TODO: log audio files
                     out_file = os.path.join(out_folder,
                                             "{0:.2f}_".format(e_time).zfill(8) +
                                             current_class + ".wav")
-                    print("Saving audio file in " + out_file)
                     shutil.copyfile("temp.wav", out_file)
 
                 textIm = numpy.zeros((status_h, plot_w, 3))
