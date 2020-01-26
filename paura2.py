@@ -102,26 +102,14 @@ Core functionality:
 """
 
 
-def record_audio(block_size, Fs=8000,
-                        show_spec=False,
-                        show_chroma=False,
-                        rec_activity=False):
+def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False):
     mid_buf_size = int(Fs * block_size)
 
     print("Press Ctr+C to stop recording")
-
     start_time_str = datetime.datetime.now().strftime("%Y_%m_%d_%I:%M%p")
-
-    # MEAN, STD = loadMEANS("svmMovies8classesMEANS")
-
     pa = pyaudio.PyAudio()
-
-    stream = pa.open(format=FORMAT,
-                     channels=1,
-                     rate=Fs,
-                     input=True,
-                     frames_per_buffer=mid_buf_size)
-
+    stream = pa.open(format=FORMAT, channels=1, rate=Fs,
+                     input=True, frames_per_buffer=mid_buf_size)
     mid_buf = []
     count = 0
     global all_data
