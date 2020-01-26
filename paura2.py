@@ -12,7 +12,7 @@ import pyaudio
 import struct
 
 global Fs
-Fs = 16000
+Fs = 8000
 FORMAT = pyaudio.paInt16
 all_data = []
 plot_h = 150
@@ -34,28 +34,6 @@ def signal_handler(signal, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="Real time audio analysis")
-    tasks = parser.add_subparsers(
-        title="subcommands", description="available tasks",
-        dest="task", metavar="")
-    recordAndAnalyze = tasks.add_parser("recordAndAnalyze",
-                                        help="Get audio data "
-                                             "from mic and analyze")
-    recordAndAnalyze.add_argument("-bs", "--blocksize",
-                                  type=float, choices=[0.25, 0.5, 0.75, 1],
-                                  default=1, help="Recording block size")
-    recordAndAnalyze.add_argument("-fs", "--samplingrate", type=int,
-                                  choices=[4000, 8000, 16000, 32000, 44100],
-                                  default=16000, help="Recording block size")
-    recordAndAnalyze.add_argument("--chromagram", action="store_true",
-                                  help="Show chromagram")
-    recordAndAnalyze.add_argument("--spectrogram", action="store_true",
-                                  help="Show spectrogram")
-    recordAndAnalyze.add_argument("--recordactivity", action="store_true",
-                                  help="Record detected sounds to wavs")
-    return parser.parse_args()
 
 
 """
@@ -102,19 +80,21 @@ Core functionality:
 """
 
 
-def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False):
+def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
+                 log_sounds=False):
     mid_buf_size = int(Fs * block_size)
 
     print("Press Ctr+C to stop recording")
-    start_time_str = datetime.datetime.now().strftime("%Y_%m_%d_%I:%M%p")
     pa = pyaudio.PyAudio()
     stream = pa.open(format=FORMAT, channels=1, rate=Fs,
                      input=True, frames_per_buffer=mid_buf_size)
+
     mid_buf = []
     count = 0
     global all_data
     all_data = []
     time_start = time.time()
+    out_folder = datetime.datetime.now().strftime("recordings_%Y_%m_%d_%I:%M%p")
 
     while 1:
         try:
@@ -145,8 +125,8 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False):
                 if show_spec:
                     (spec, t_axis, freq_axis_s) = sF.spectrogram(mid_buf, 
                                                                  Fs, 
-                                                                 0.020 * Fs, 
-                                                                 0.020 * Fs)
+                                                                 0.050 * Fs,
+                                                                 0.050 * Fs)
                     freq_axis_s = numpy.array(freq_axis_s)  # frequency axis
                     # most dominant frequencies (for each short-term window):
                     dominant_freqs = freq_axis_s[numpy.argmax(spec, axis=1)]
@@ -158,8 +138,8 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False):
                 if show_chroma:
                     (chrom, TimeAxisC, freq_axis_c) = sF.chromagram(mid_buf, 
                                                                     Fs, 
-                                                                    0.020 * Fs,
-                                                                    0.020 * Fs)
+                                                                    0.050 * Fs,
+                                                                    0.050 * Fs)
                     freq_axis_c = numpy.array(freq_axis_c)  
                     # most dominant chroma classes:
                     dominant_freqs_c = freq_axis_c[numpy.argmax(chrom,
@@ -202,6 +182,9 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False):
 
                 # Activity Detection:
                 print(e_time, current_class)
+                if log_sounds:
+                    # TODO: log audio files
+                    print("Saving audio file in " + out_folder)
 
                 textIm = numpy.zeros((status_h, plot_w, 3))
                 statusStrTime = "time: %.1f sec" % e_time + \
@@ -220,9 +203,29 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False):
             print("Error recording")
 
 
+def parse_arguments():
+    record_analyze = argparse.ArgumentParser(description="Real time "
+                                                         "audio analysis")
+    record_analyze.add_argument("-bs", "--blocksize",
+                                  type=float, choices=[0.25, 0.5, 0.75, 1],
+                                  default=1, help="Recording block size")
+    record_analyze.add_argument("-fs", "--samplingrate", type=int,
+                                  choices=[4000, 8000, 16000, 32000, 44100],
+                                  default=8000, help="Recording block size")
+    record_analyze.add_argument("--chromagram", action="store_true",
+                                  help="Show chromagram")
+    record_analyze.add_argument("--spectrogram", action="store_true",
+                                  help="Show spectrogram")
+    record_analyze.add_argument("--recordactivity", action="store_true",
+                                  help="Record detected sounds to wavs")
+    return record_analyze.parse_args()
+
+
 if __name__ == "__main__":
     args = parse_arguments()
-    if args.task == "recordAndAnalyze":
-        Fs = args.samplingrate
-        record_audio(args.blocksize, args.samplingrate, args.spectrogram,
-                            args.chromagram, args.recordactivity)
+    Fs = args.samplingrate
+    if Fs != 8000:
+        print("Warning! Segment classifiers have been trained on 8KHz samples. "
+              "Therefore results will be not optimal. ")
+    record_audio(args.blocksize, Fs, args.spectrogram,
+                 args.chromagram, args.recordactivity)
