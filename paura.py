@@ -1,224 +1,243 @@
-import sys, os, alsaaudio, time, audioop, numpy, glob,  scipy, subprocess, wave, cPickle, threading, shutil, cv2
+import sys, time, numpy, scipy, cv2
 import argparse
 import scipy.io.wavfile as wavfile
-from scipy.fftpack import rfft
-from pyAudioAnalysis import audioFeatureExtraction as aF    
-from scipy.fftpack import fft
-import matplotlib
+from pyAudioAnalysis import ShortTermFeatures as sF
+from pyAudioAnalysis import audioSegmentation as aS
 import scipy.signal
 import itertools
 import operator
 import datetime
 import signal
+import pyaudio
+import os
+import struct
+import shutil
 
-allData = []
-HeightPlot = 150  
-WidthPlot = 720
-statusHeight = 150;
-minActivityDuration = 1.0
-Fs = 16000
+global Fs
+global all_data
+global outstr
+Fs = 8000
+FORMAT = pyaudio.paInt16
+all_data = []
+plot_h = 150
+plot_w = 720
+status_h = 150;
+min_act_dur = 1.0 # minimum duration of each activation
+
 
 def signal_handler(signal, frame):
-    wavfile.write("output.wav", Fs, numpy.int16(allData))  # write final buffer to wav file
-    print('You pressed Ctrl+C!')
+    """
+    This function is called when Ctr + C is pressed and is used to output the
+    final buffer into a WAV file
+    """
+    # write final buffer to wav file
+    if len(all_data) > 1:
+        wavfile.write(outstr + ".wav", Fs, numpy.int16(all_data))
     sys.exit(0)
+
+
 signal.signal(signal.SIGINT, signal_handler)
 
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="Real time audio analysis")
-    tasks = parser.add_subparsers(
-        title="subcommands", description="available tasks", dest="task", metavar="")
 
-    recordAndAnalyze = tasks.add_parser("recordAndAnalyze", help="Get audio data from mic and analyze")
-    recordAndAnalyze.add_argument("-bs", "--blocksize", type=float, choices=[0.1, 0.2, 0.3, 0.4, 0.5], default=0.20, help="Recording block size")
-    recordAndAnalyze.add_argument("-fs", "--samplingrate", type=int, choices=[4000, 8000, 16000, 32000, 44100], default=16000, help="Recording block size")
-    recordAndAnalyze.add_argument("--chromagram", action="store_true", help="Show chromagram")
-    recordAndAnalyze.add_argument("--spectrogram", action="store_true", help="Show spectrogram")
-    recordAndAnalyze.add_argument("--recordactivity", action="store_true", help="Record detected sounds to wavs")
-    return parser.parse_args()
 
-'''
-Utitlity functions:
-'''
+"""
+Utility functions
+"""
 
-def loadMEANS(modelName):
-    # load pyAudioAnalysis classifier file (MEAN and STD values). 
-    # used for feature normalization
-    try:
-        fo = open(modelName, "rb")
-    except IOError:
-            print "Load Model: Didn't find file"
-            return
-    try:
-        MEAN = cPickle.load(fo)
-        STD = cPickle.load(fo)
-    except:
-        fo.close()
-    fo.close()        
-    return (MEAN, STD)
 
-def most_common(L):    
-  # get an iterable of (item, iterable) pairs
-  SL = sorted((x, i) for i, x in enumerate(L))
-  # print 'SL:', SL
-  groups = itertools.groupby(SL, key=operator.itemgetter(0))
-  # auxiliary function to get "quality" for an item
-  def _auxfun(g):
-    item, iterable = g
-    count = 0
-    min_index = len(L)
-    for _, where in iterable:
-      count += 1
-      min_index = min(min_index, where)
-    # print 'item %r, count %r, minind %r' % (item, count, min_index)
-    return count, -min_index
-  # pick the highest-count/earliest item
-  return max(groups, key=_auxfun)[0]
+def most_common(L):
+    # get an iterable of (item, iterable) pairs
+    SL = sorted((x, i) for i, x in enumerate(L))
+    groups = itertools.groupby(SL, key=operator.itemgetter(0))
 
-def plotCV(Fun, Width, Height, MAX):
-    if len(Fun)>Width:
-        hist_item = Height * (Fun[len(Fun)-Width-1:-1] / MAX)
+    # auxiliary function to get "quality" for an item
+    def _auxfun(g):
+        item, iterable = g
+        count = 0
+        min_index = len(L)
+        for _, where in iterable:
+            count += 1
+            min_index = min(min_index, where)
+        return count, -min_index
+
+    # pick the highest-count/earliest item
+    return max(groups, key=_auxfun)[0]
+
+
+def plotCV(function, width, height, max_val):
+    if len(function) > width:
+        hist_item = height * (function[len(function) - width - 1:-1] / max_val)
     else:
-        hist_item = Height * (Fun / MAX)
-    h = numpy.zeros((Height, Width, 3))
+        hist_item = height * (function / max_val)
+    h = numpy.zeros((height, width, 3))
     hist = numpy.int32(numpy.around(hist_item))
 
-    for x,y in enumerate(hist):        
-            cv2.line(h,(x,Height/2),(x,Height-y),(255,0,255))        
+    for x, y in enumerate(hist):
+        cv2.line(h, (x, int(height / 2)),
+                 (x, height - y), (255, 0, 255))
 
     return h
 
-'''
-Basic functionality:
-'''
-def recordAudioSegments(BLOCKSIZE, Fs = 16000, showSpectrogram = False, showChromagram = False, recordActivity = False):    
-    
-    print "Press Ctr+C to stop recording"
 
-    startDateTimeStr = datetime.datetime.now().strftime("%Y_%m_%d_%I:%M%p")
+"""
+Core functionality:
+"""
 
-    MEAN, STD = loadMEANS("svmMovies8classesMEANS")                                             # load MEAN feature values 
 
-    inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,alsaaudio.PCM_NONBLOCK)                           # open alsaaudio capture 
-    inp.setchannels(1)                                                                          # 1 channel
-    inp.setrate(Fs)                                                                             # set sampling freq
-    inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)                                                  # set 2-byte sample
-    inp.setperiodsize(512)
-    midTermBufferSize = int(Fs*BLOCKSIZE)
-    midTermBuffer = []
-    curWindow = []    
+def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
+                 log_sounds=False, logs_all=False):
+
+    mid_buf_size = int(Fs * block_size)
+    pa = pyaudio.PyAudio()
+    stream = pa.open(format=FORMAT, channels=1, rate=Fs,
+                     input=True, frames_per_buffer=mid_buf_size)
+    mid_buf = []
     count = 0
-    global allData
-    allData = []
-    energy100_buffer_zero = []
-    curActiveWindow = numpy.array([])    
-    timeStart = time.time()
+    global all_data
+    global outstr
+    all_data = []
+    time_start = time.time()
+    outstr = datetime.datetime.now().strftime("%Y_%m_%d_%I:%M%p")
+    out_folder = outstr + "_segments"
+    if log_sounds:
+        if not os.path.exists(out_folder):
+            os.makedirs(out_folder)
+    while 1:
+        try:
+            block = stream.read(mid_buf_size)
+            count_b = len(block) / 2
+            format = "%dh" % (count_b)
+            shorts = struct.unpack(format, block)
+            cur_win = list(shorts)
+            mid_buf = mid_buf + cur_win
+            del cur_win
 
-    while 1:            
-            l,data = inp.read()                                                                 # read data from buffer
-            if l:
-                for i in range(len(data)/2):
-                    curWindow.append(audioop.getsample(data, 2, i))                             # get audio samples
-            
-                if (len(curWindow)+len(midTermBuffer)>midTermBufferSize):
-                    samplesToCopyToMidBuffer = midTermBufferSize - len(midTermBuffer)
-                else:
-                    samplesToCopyToMidBuffer = len(curWindow)
+            if 1:
+                # time since recording started:
+                e_time = (time.time() - time_start)
+                # data-driven time
+                data_time = (count + 1) * block_size
+                wavfile.write("temp.wav", Fs, numpy.int16(mid_buf))
+                flags, classes, _, _ = aS.mtFileClassification("temp.wav",
+                                                               "model",
+                                                               "svm",
+                                                               False, "")
+                current_class = classes[int(flags[-1])]
+                if logs_all:
+                    all_data += mid_buf
+                mid_buf = numpy.double(mid_buf)
 
-                midTermBuffer = midTermBuffer + curWindow[0:samplesToCopyToMidBuffer];          # copy to midTermBuffer
-                del(curWindow[0:samplesToCopyToMidBuffer])
+                # Compute spectrogram
+                if show_spec:
+                    (spec, t_axis, freq_axis_s) = sF.spectrogram(mid_buf, 
+                                                                 Fs, 
+                                                                 0.050 * Fs,
+                                                                 0.050 * Fs)
+                    freq_axis_s = numpy.array(freq_axis_s)  # frequency axis
+                    # most dominant frequencies (for each short-term window):
+                    dominant_freqs = freq_axis_s[numpy.argmax(spec, axis=1)]
+                    # get average most dominant freq
+                    max_freq = numpy.mean(dominant_freqs)
+                    max_freq_std = numpy.std(dominant_freqs)
+
+                # Compute chromagram                        
+                if show_chroma:
+                    (chrom, TimeAxisC, freq_axis_c) = sF.chromagram(mid_buf, 
+                                                                    Fs, 
+                                                                    0.050 * Fs,
+                                                                    0.050 * Fs)
+                    freq_axis_c = numpy.array(freq_axis_c)  
+                    # most dominant chroma classes:
+                    dominant_freqs_c = freq_axis_c[numpy.argmax(chrom,
+                                                               axis=1)]
+                    # get most common among all short-term windows
+                    max_freqC = most_common(dominant_freqs_c)[0]
+
+                # Plot signal window
+                signalPlotCV = plotCV(scipy.signal.resample(mid_buf + 16000, 
+                                                            plot_w),
+                                      plot_w, plot_h, 32000)
+                cv2.imshow('Signal', signalPlotCV)
+                cv2.moveWindow('Signal', 50, status_h + 50)
+
+                # Show spectrogram
+                if show_spec:
+                    i_spec = numpy.array(spec.T * 255, dtype=numpy.uint8)
+                    i_spec2 = cv2.resize(i_spec, (plot_w, plot_h),
+                                        interpolation=cv2.INTER_CUBIC)
+                    i_spec2 = cv2.applyColorMap(i_spec2, cv2.COLORMAP_JET)
+                    cv2.putText(i_spec2, "max_freq: %.0f Hz" % max_freq, 
+                                (0, 11), cv2.FONT_HERSHEY_PLAIN, 
+                                1, (200, 200, 200))
+                    cv2.imshow('Spectrogram', i_spec2)
+                    cv2.moveWindow('Spectrogram', 50,
+                                   plot_h + status_h + 60)
+                # Show chromagram
+                if show_chroma:
+                    i_chroma = numpy.array((chrom.T /
+                                            chrom.max()) * 255,
+                                           dtype=numpy.uint8)
+                    i_chroma2 = cv2.resize(i_chroma, (plot_w, plot_h),
+                                           interpolation=cv2.INTER_CUBIC)
+                    i_chroma2 = cv2.applyColorMap(i_chroma2, cv2.COLORMAP_JET)
+                    cv2.putText(i_chroma2, "max_freqC: %s" % max_freqC, (0, 11),
+                                cv2.FONT_HERSHEY_PLAIN, 1, (200, 200, 200))
+                    cv2.imshow('Chroma', i_chroma2)
+                    cv2.moveWindow('Chroma', 50,
+                                   2 * plot_h + status_h + 60)
+
+                # Activity Detection:
+                print("{0:.2f}".format(e_time), current_class)
+                if log_sounds:
+                    # TODO: log audio files
+                    out_file = os.path.join(out_folder,
+                                            "{0:.2f}_".format(e_time).zfill(8) +
+                                            current_class + ".wav")
+                    shutil.copyfile("temp.wav", out_file)
+
+                textIm = numpy.zeros((status_h, plot_w, 3))
+                statusStrTime = "time: %.1f sec" % e_time + \
+                                " - data time: %.1f sec" % data_time + \
+                                " - loss : %.1f sec" % (e_time - data_time)
+                cv2.putText(textIm, statusStrTime, (0, 11),
+                            cv2.FONT_HERSHEY_PLAIN, 1, (200, 200, 200))
+                cv2.putText(textIm, current_class, (0, 33),
+                            cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255))
+                cv2.imshow("Status", textIm)
+                cv2.moveWindow("Status", 50, 0)
+                mid_buf = []
+                ch = cv2.waitKey(10)
+                count += 1
+        except IOError:
+            print("Error recording")
 
 
-                if len(midTermBuffer) == midTermBufferSize:                                     # if midTermBuffer is full:
-                    elapsedTime = (time.time() - timeStart)                                     # time since recording started
-                    dataTime  = (count+1) * BLOCKSIZE                                           # data-driven time
+def parse_arguments():
+    record_analyze = argparse.ArgumentParser(description="Real time "
+                                                         "audio analysis")
+    record_analyze.add_argument("-bs", "--blocksize",
+                                  type=float, choices=[0.25, 0.5, 0.75, 1],
+                                  default=1, help="Recording block size")
+    record_analyze.add_argument("-fs", "--samplingrate", type=int,
+                                  choices=[4000, 8000, 16000, 32000, 44100],
+                                  default=8000, help="Recording block size")
+    record_analyze.add_argument("--chromagram", action="store_true",
+                                  help="Show chromagram")
+    record_analyze.add_argument("--spectrogram", action="store_true",
+                                  help="Show spectrogram")
+    record_analyze.add_argument("--record_segments", action="store_true",
+                                  help="Record detected sounds to wavs")
+    record_analyze.add_argument("--record_all", action="store_true",
+                                  help="Record the whole recording to a single"
+                                       " audio file")
+    return record_analyze.parse_args()
 
-                    # TODO
-                    # mtF, _ = aF.mtFeatureExtraction(midTermBuffer, Fs, BLOCKSIZE * Fs, BLOCKSIZE * Fs, 0.050 * Fs, 0.050 * Fs)                    
-                    # curFV = (mtF - MEAN) / STD
-                    # TODO
-                    allData += midTermBuffer                    
-                    midTermBuffer = numpy.double(midTermBuffer)                                 # convert current buffer to numpy array                    
-
-                    # Compute spectrogram
-                    if showSpectrogram:                                                         
-                        (spectrogram, TimeAxisS, FreqAxisS) = aF.stSpectogram(midTermBuffer, Fs, 0.020 * Fs, 0.02 * Fs) # extract spectrogram
-                        FreqAxisS = numpy.array(FreqAxisS)                                      # frequency axis
-                        DominantFreqs = FreqAxisS[numpy.argmax(spectrogram, axis = 1)]          # most dominant frequencies (for each short-term window)
-                        maxFreq     = numpy.mean(DominantFreqs)                                 # get average most dominant freq
-                        maxFreqStd  = numpy.std(DominantFreqs)                        
-                    
-                    # Compute chromagram                        
-                    if showChromagram:                                                          
-                        (chromagram, TimeAxisC, FreqAxisC) = aF.stChromagram(midTermBuffer, Fs, 0.020 * Fs, 0.02 * Fs)  # get chromagram
-                        FreqAxisC = numpy.array(FreqAxisC)                                      # frequency axis (12 chroma classes)
-                        DominantFreqsC = FreqAxisC[numpy.argmax(chromagram, axis = 1)]          # most dominant chroma classes 
-                        maxFreqC = most_common(DominantFreqsC)[0]                               # get most common among all short-term windows
-
-                    # Plot signal window
-                    signalPlotCV = plotCV(scipy.signal.resample(midTermBuffer + 16000, WidthPlot), WidthPlot, HeightPlot, 32000)
-                    cv2.imshow('Signal', signalPlotCV)
-                    cv2.moveWindow('Signal',  50, statusHeight + 50)                    
-
-                    # Show spectrogram
-                    if showSpectrogram:
-                        iSpec  = numpy.array(spectrogram.T * 255, dtype = numpy.uint8)
-                        iSpec2 = cv2.resize(iSpec,(WidthPlot, HeightPlot), interpolation = cv2.INTER_CUBIC)
-                        iSpec2 = cv2.applyColorMap(iSpec2, cv2.COLORMAP_JET)                    
-                        cv2.putText(iSpec2, "maxFreq: %.0f Hz" % maxFreq, (0, 11), cv2.FONT_HERSHEY_PLAIN, 1, (200,200,200))
-                        cv2.imshow('Spectrogram', iSpec2)  
-                        cv2.moveWindow('Spectrogram',  50, HeightPlot + statusHeight + 60)
-                    
-                    # Show chromagram
-                    if showChromagram:
-                        iChroma  = numpy.array((chromagram.T / chromagram.max()) * 255, dtype = numpy.uint8)                
-                        iChroma2 = cv2.resize(iChroma,(WidthPlot, HeightPlot), interpolation = cv2.INTER_CUBIC)
-                        iChroma2 = cv2.applyColorMap(iChroma2, cv2.COLORMAP_JET)
-                        cv2.putText(iChroma2, "maxFreqC: %s" % maxFreqC, (0, 11), cv2.FONT_HERSHEY_PLAIN, 1, (200,200,200))
-                        cv2.imshow('Chroma', iChroma2)
-                        cv2.moveWindow('Chroma',  50, 2 * HeightPlot + statusHeight + 60)
-
-                    # Activity Detection:                    
-                    energy100 = (100*numpy.sum(midTermBuffer * midTermBuffer) 
-                        / (midTermBuffer.shape[0] * 32000 * 32000))     
-                    if count < 10:                                                          # TODO make this param
-                        energy100_buffer_zero.append(energy100)                    
-                        mean_energy100_zero = numpy.mean(numpy.array(energy100_buffer_zero))
-                    else:
-                        mean_energy100_zero = numpy.mean(numpy.array(energy100_buffer_zero))
-                        if (energy100 < 1.2 * mean_energy100_zero):
-                            if curActiveWindow.shape[0] > 0:                                    # if a sound has been detected in the previous segment:
-                                activeT2 = elapsedTime - BLOCKSIZE                              # set time of current active window
-                                if activeT2 - activeT1 > minActivityDuration:
-                                    wavFileName = startDateTimeStr + "_activity_{0:.2f}_{1:.2f}.wav".format(activeT1, activeT2)
-                                    if recordActivity:
-                                        wavfile.write(wavFileName, Fs, numpy.int16(curActiveWindow))# write current active window to file
-                                curActiveWindow = numpy.array([])                               # delete current active window
-                        else:
-                            if curActiveWindow.shape[0] == 0:                                   # this is a new active window!
-                                activeT1 = elapsedTime - BLOCKSIZE                              # set timestamp start of new active window
-                            curActiveWindow = numpy.concatenate((curActiveWindow, midTermBuffer))                        
-
-                    # Show status messages on Status cv winow:
-                    textIm = numpy.zeros((statusHeight, WidthPlot, 3))
-                    statusStrTime = "time: %.1f sec" % elapsedTime + " - data time: %.1f sec" % dataTime + " - loss : %.1f sec" % (elapsedTime-dataTime)                                        
-                    statusStrFeature = "ene1:%.1f" % energy100 + " eneZero:%.1f"%mean_energy100_zero 
-                    cv2.putText(textIm, statusStrTime, (0, 11),  cv2.FONT_HERSHEY_PLAIN, 1, (200,200,200))
-                    cv2.putText(textIm, statusStrFeature, (0, 22), cv2.FONT_HERSHEY_PLAIN, 1, (200,200,200))
-                    if curActiveWindow.shape[0] > 0:
-                        cv2.putText(textIm, "sound", (0, 33), cv2.FONT_HERSHEY_PLAIN, 1, (0,0,255))                   
-                    else:
-                        cv2.putText(textIm, "silence", (0, 33), cv2.FONT_HERSHEY_PLAIN, 1, (200,200,220))                   
-                    cv2.imshow("Status", textIm)
-                    cv2.moveWindow("Status", 50, 0)
-                    midTermBuffer = []
-                    ch = cv2.waitKey(10)
-                    count += 1
-                        
 
 if __name__ == "__main__":
     args = parse_arguments()
-    if args.task == "recordAndAnalyze":
-        global Fs
-        Fs = args.samplingrate
-        recordAudioSegments(args.blocksize, args.samplingrate, args.spectrogram, args.chromagram, args.recordactivity)        
+    Fs = args.samplingrate
+    if Fs != 8000:
+        print("Warning! Segment classifiers have been trained on 8KHz samples. "
+              "Therefore results will be not optimal. ")
+    record_audio(args.blocksize, Fs, args.spectrogram,
+                 args.chromagram, args.record_segments, args.record_all)
