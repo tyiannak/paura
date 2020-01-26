@@ -8,28 +8,26 @@
 pAura is a Python tool for recording audio information and analyzing its content
  in an online and realtime manner.
 
-paura.py uses alsaaudio to capture sound (to be used under Linux environments), 
-while paura2.py uses pySound (based on portaudio), 
-so it can both be used in Linux and MacOs environments.
+`paura.py` uses pySound (based on portaudio), so it can both be used in Linux 
+and MacOs environments.
 
-## Installation (for Linux)
+(Old code, noa available in paura_old_als.py uses alsaaudio to capture sound 
+ and is therefore to be used only under Linux environments)
+
+## Installation
+Before downloading this library and setting up the pip requirements, please 
+consider the following:
+
+### Requirements for Linux
  * Install [pyAudioAnalysis](https://github.com/tyiannak/pyAudioAnalysis/).
- * Install alsaaudio for python: `sudo apt-get install python-alsaaudio`
+ * Install portaudio: `sudo apt-get install libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0`
  * Install opencv for python: `sudo apt-get install python-opencv`
- * Clone the source of this library: 
- ```
-git clone https://github.com/tyiannak/paura.git
-```
 
-
-## Installation (for paura2.py and MacOs)
+### Requirements for MacOs
  * Install [pyAudioAnalysis](https://github.com/tyiannak/pyAudioAnalysis/).
  * Install portaudio: `brew install portaudio`
- * Install pysound and opencv for python: `pip install pyaudio opencv-python`
- * Clone the source of this library: 
- ```
-git clone https://github.com/tyiannak/paura.git
-```
+ * Install pysound and opencv for python: `pip3 install pyaudio opencv-python`
+
 
 ## Execution and outputs
 
