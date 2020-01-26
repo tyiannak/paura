@@ -9,9 +9,13 @@ import operator
 import datetime
 import signal
 import pyaudio
+import os
 import struct
+import shutil
 
 global Fs
+global all_data
+global outstr
 Fs = 8000
 FORMAT = pyaudio.paInt16
 all_data = []
@@ -27,7 +31,8 @@ def signal_handler(signal, frame):
     final buffer into a WAV file
     """
     # write final buffer to wav file
-    wavfile.write("output.wav", Fs, numpy.int16(all_data))
+    if len(all_data) > 1:
+        wavfile.write(outstr + ".wav", Fs, numpy.int16(all_data))
     print('You pressed Ctrl+C!')
     sys.exit(0)
 
@@ -81,21 +86,24 @@ Core functionality:
 
 
 def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
-                 log_sounds=False):
-    mid_buf_size = int(Fs * block_size)
+                 log_sounds=False, logs_all=False):
 
+    mid_buf_size = int(Fs * block_size)
     print("Press Ctr+C to stop recording")
     pa = pyaudio.PyAudio()
     stream = pa.open(format=FORMAT, channels=1, rate=Fs,
                      input=True, frames_per_buffer=mid_buf_size)
-
     mid_buf = []
     count = 0
     global all_data
+    global outstr
     all_data = []
     time_start = time.time()
-    out_folder = datetime.datetime.now().strftime("recordings_%Y_%m_%d_%I:%M%p")
-
+    outstr = datetime.datetime.now().strftime("%Y_%m_%d_%I:%M%p")
+    out_folder = outstr + "_segments"
+    if log_sounds:
+        if not os.path.exists(out_folder):
+            os.makedirs(out_folder)
     while 1:
         try:
             block = stream.read(mid_buf_size)
@@ -117,8 +125,8 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
                                                                "svm",
                                                                False, "")
                 current_class = classes[int(flags[-1])]
-
-                all_data += mid_buf
+                if logs_all:
+                    all_data += mid_buf
                 mid_buf = numpy.double(mid_buf)
 
                 # Compute spectrogram
@@ -184,7 +192,11 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
                 print(e_time, current_class)
                 if log_sounds:
                     # TODO: log audio files
-                    print("Saving audio file in " + out_folder)
+                    out_file = os.path.join(out_folder,
+                                            "{0:.2f}_".format(e_time).zfill(8) +
+                                            current_class + ".wav")
+                    print("Saving audio file in " + out_file)
+                    shutil.copyfile("temp.wav", out_file)
 
                 textIm = numpy.zeros((status_h, plot_w, 3))
                 statusStrTime = "time: %.1f sec" % e_time + \
@@ -216,8 +228,11 @@ def parse_arguments():
                                   help="Show chromagram")
     record_analyze.add_argument("--spectrogram", action="store_true",
                                   help="Show spectrogram")
-    record_analyze.add_argument("--recordactivity", action="store_true",
+    record_analyze.add_argument("--record_segments", action="store_true",
                                   help="Record detected sounds to wavs")
+    record_analyze.add_argument("--record_all", action="store_true",
+                                  help="Record the whole recording to a single"
+                                       " audio file")
     return record_analyze.parse_args()
 
 
@@ -228,4 +243,4 @@ if __name__ == "__main__":
         print("Warning! Segment classifiers have been trained on 8KHz samples. "
               "Therefore results will be not optimal. ")
     record_audio(args.blocksize, Fs, args.spectrogram,
-                 args.chromagram, args.recordactivity)
+                 args.chromagram, args.record_segments, args.record_all)
