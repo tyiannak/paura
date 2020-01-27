@@ -2,6 +2,8 @@ import sys, time, numpy, scipy, cv2
 import argparse
 import scipy.io.wavfile as wavfile
 from pyAudioAnalysis import ShortTermFeatures as sF
+from pyAudioAnalysis import MidTermFeatures as mF
+from pyAudioAnalysis import audioTrainTest as aT
 from pyAudioAnalysis import audioSegmentation as aS
 import scipy.signal
 import itertools
@@ -21,8 +23,7 @@ FORMAT = pyaudio.paInt16
 all_data = []
 plot_h = 150
 plot_w = 720
-status_h = 150;
-min_act_dur = 1.0 # minimum duration of each activation
+status_h = 150
 
 
 def signal_handler(signal, frame):
@@ -87,6 +88,7 @@ Core functionality:
 def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
                  log_sounds=False, logs_all=False):
 
+    # inialize recording process
     mid_buf_size = int(Fs * block_size)
     pa = pyaudio.PyAudio()
     stream = pa.open(format=FORMAT, channels=1, rate=Fs,
@@ -96,12 +98,17 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
     global all_data
     global outstr
     all_data = []
+    # initalize counters etc
     time_start = time.time()
     outstr = datetime.datetime.now().strftime("%Y_%m_%d_%I:%M%p")
     out_folder = outstr + "_segments"
     if log_sounds:
         if not os.path.exists(out_folder):
             os.makedirs(out_folder)
+    # load segment model
+    [classifier, MEAN, STD, class_names,
+     mt_win, mt_step, st_win, st_step, _] = aT.load_model("model")
+
     while 1:
         try:
             block = stream.read(mid_buf_size)
@@ -117,12 +124,31 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
                 e_time = (time.time() - time_start)
                 # data-driven time
                 data_time = (count + 1) * block_size
-                wavfile.write("temp.wav", Fs, numpy.int16(mid_buf))
-                flags, classes, _, _ = aS.mtFileClassification("temp.wav",
-                                                               "model",
-                                                               "svm",
+                x = numpy.int16(mid_buf)
+                seg_len = len(x)
+                """
+                wavfile.write("temp.wav", Fs, x)
+                flags, classes, _, _ = aS.mtFileClassification("temp.wav", 
+                                                               "model", "svm", 
                                                                False, "")
                 current_class = classes[int(flags[-1])]
+                """
+                # extract features
+                # We are using the signal length as mid term window and step,
+                # in order to guarantee a mid-term feature sequence of len 1
+                [mt_feats, _, _] = mF.mid_feature_extraction(x, Fs,
+                                                             seg_len,
+                                                             seg_len,
+                                                             round(Fs * st_win),
+                                                             round(Fs * st_step)
+                                                             )
+                cur_fv = (mt_feats[:, 0] - MEAN) / STD
+                # classify vector:
+                [res, prob] = aT.classifierWrapper(classifier, "svm_rbf",
+                                                   cur_fv)
+                win_class = class_names[int(res)]
+                win_prob = prob[int(res)]
+
                 if logs_all:
                     all_data += mid_buf
                 mid_buf = numpy.double(mid_buf)
@@ -187,13 +213,17 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
                                    2 * plot_h + status_h + 60)
 
                 # Activity Detection:
-                print("{0:.2f}".format(e_time), current_class)
+                print("{0:.2f}\t{1:s}\t{2:.2f}".format(e_time,
+                                                       win_class,
+                                                       win_prob))
+
                 if log_sounds:
                     # TODO: log audio files
                     out_file = os.path.join(out_folder,
                                             "{0:.2f}_".format(e_time).zfill(8) +
-                                            current_class + ".wav")
-                    shutil.copyfile("temp.wav", out_file)
+                                            win_class + ".wav")
+                    #shutil.copyfile("temp.wav", out_file)
+                    wavfile.write(out_file, Fs, x)
 
                 textIm = numpy.zeros((status_h, plot_w, 3))
                 statusStrTime = "time: %.1f sec" % e_time + \
@@ -201,7 +231,7 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
                                 " - loss : %.1f sec" % (e_time - data_time)
                 cv2.putText(textIm, statusStrTime, (0, 11),
                             cv2.FONT_HERSHEY_PLAIN, 1, (200, 200, 200))
-                cv2.putText(textIm, current_class, (0, 33),
+                cv2.putText(textIm, win_class, (0, 33),
                             cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255))
                 cv2.imshow("Status", textIm)
                 cv2.moveWindow("Status", 50, 0)
@@ -216,7 +246,7 @@ def parse_arguments():
     record_analyze = argparse.ArgumentParser(description="Real time "
                                                          "audio analysis")
     record_analyze.add_argument("-bs", "--blocksize",
-                                  type=float, choices=[0.25, 0.5, 0.75, 1],
+                                  type=float, choices=[0.25, 0.5, 0.75, 1, 2],
                                   default=1, help="Recording block size")
     record_analyze.add_argument("-fs", "--samplingrate", type=int,
                                   choices=[4000, 8000, 16000, 32000, 44100],
