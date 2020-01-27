@@ -36,13 +36,13 @@ The following command records audio data using blocks of 1sec (segments).
  python3 paura2.py --blocksize 1.0 --spectrogram --chromagram --record_segments --record_all
 ```
 
-### Outputs
+### Output
 For each segment, the script:
 1) Visualizes the spectrogram, chromagram  along with the raw samples (waveform)
 2) Applies a simple audio classifier that distinguishes between 4 classes namely
  silence, speech, music and other sounds.
 
-### Outputs formats
+### Output format
 
 The predictions are printed in the console in the form of timestamp 
 (segment starting point in seconds, counting from the recording starting time), 
