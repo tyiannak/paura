@@ -2,16 +2,14 @@
 # pAura: Python AUdio Recording and Analysis
 
 ## News
- * [2020/01/02] paura2.py python3 support added 
+ * [2020/01/02] python3 support added 
 
 ## General
-pAura is a Python tool for recording audio information and analyzing its content
- in an online and realtime manner.
+```paura``` is a Python tool for recording and analyzing sounds in an online 
+and continuous manner. `paura` uses pySound (based on portaudio), so it can 
+both be used in Linux and MacOs environments. 
 
-`paura.py` uses pySound (based on portaudio), so it can both be used in Linux 
-and MacOs environments.
-
-(Old code, noa available in paura_old_als.py uses alsaaudio to capture sound 
+(Old code, now available in paura_old_als.py uses alsaaudio to capture sound 
  and is therefore to be used only under Linux environments)
 
 ## Installation
