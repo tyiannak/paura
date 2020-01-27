@@ -84,7 +84,7 @@ memory issues. In the above example, the overall audio recording is stored in
 
 
 ## Ongoing work
-Merge Linux and MacOs in a single file
+Export selected features and mid-term representations
 
 ## Author
 <img src="https://tyiannak.github.io/files/3.JPG" align="left" height="100"/>
