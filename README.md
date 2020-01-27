@@ -47,15 +47,15 @@ For each segment, the script:
 ### Outputs formats
 
 The predictions are printed in the console in the form of timestamp 
-(segment starting point in seconds, counting from the recording starting time) 
-and class label (silence, music, speech or other), e.g.
+(segment starting point in seconds, counting from the recording starting time), 
+class label (silence, music, speech or other), and prediction confidence, e.g.
 ```
-1.65 silence
-2.68 other
-3.70 silence
-4.72 other
-5.65 speech
-6.67 other
+...
+12.71	other	0.52
+13.63	speech	0.30
+14.66	other	0.43
+15.68	music	0.92
+16.70	speech	0.30
 ...
 ```
 
@@ -67,13 +67,13 @@ each segment is saved in a folder named by the starting timestamp of the
 recording session, and has a filename indicated by its relative timestamp from 
 the recording starting time, e.g. for the above example:
 ```
-⇒ ls -1 2020_01_26_11:16PM_segments 
-0001.65_silence.wav
-0002.68_other.wav
-0003.70_silence.wav
-0004.72_other.wav
-0005.65_speech.wav
-0006.67_other.wav
+⇒ ls -1 2020_01_28_12:37AM_segments 
+...
+0012.71_other.wav
+0013.63_speech.wav
+0014.66_other.wav
+0015.68_music.wav
+0016.70_speech.wav
 ...
 ```
 
