@@ -33,7 +33,7 @@ consider the following:
 The following command records audio data using blocks of 1sec (segments). 
 
 ```
- python3 paura2.py --blocksize 1.0 --spectrogram --chromagram --record_segments --record_all
+ python3 paura.py --blocksize 1.0 --spectrogram --chromagram --record_segments --record_all
 ```
 
 ### Output
