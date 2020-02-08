@@ -4,7 +4,6 @@ import scipy.io.wavfile as wavfile
 from pyAudioAnalysis import ShortTermFeatures as sF
 from pyAudioAnalysis import MidTermFeatures as mF
 from pyAudioAnalysis import audioTrainTest as aT
-from pyAudioAnalysis import audioSegmentation as aS
 import scipy.signal
 import itertools
 import operator
@@ -13,7 +12,6 @@ import signal
 import pyaudio
 import os
 import struct
-import shutil
 
 global Fs
 global all_data
@@ -126,13 +124,7 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
                 data_time = (count + 1) * block_size
                 x = numpy.int16(mid_buf)
                 seg_len = len(x)
-                """
-                wavfile.write("temp.wav", Fs, x)
-                flags, classes, _, _ = aS.mtFileClassification("temp.wav", 
-                                                               "model", "svm", 
-                                                               False, "")
-                current_class = classes[int(flags[-1])]
-                """
+
                 # extract features
                 # We are using the signal length as mid term window and step,
                 # in order to guarantee a mid-term feature sequence of len 1
