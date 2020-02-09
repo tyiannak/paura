@@ -1,4 +1,8 @@
-import sys, time, numpy, scipy, cv2
+import sys
+import time
+import numpy
+import scipy
+import cv2
 import argparse
 import scipy.io.wavfile as wavfile
 from pyAudioAnalysis import ShortTermFeatures as sF
@@ -13,10 +17,10 @@ import pyaudio
 import os
 import struct
 
-global Fs
+global fs
 global all_data
 global outstr
-Fs = 8000
+fs = 8000
 FORMAT = pyaudio.paInt16
 all_data = []
 plot_h = 150
@@ -31,7 +35,7 @@ def signal_handler(signal, frame):
     """
     # write final buffer to wav file
     if len(all_data) > 1:
-        wavfile.write(outstr + ".wav", Fs, numpy.int16(all_data))
+        wavfile.write(outstr + ".wav", fs, numpy.int16(all_data))
     sys.exit(0)
 
 
@@ -83,13 +87,13 @@ Core functionality:
 """
 
 
-def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
+def record_audio(block_size, fs=8000, show_spec=False, show_chroma=False,
                  log_sounds=False, logs_all=False):
 
     # inialize recording process
-    mid_buf_size = int(Fs * block_size)
+    mid_buf_size = int(fs * block_size)
     pa = pyaudio.PyAudio()
-    stream = pa.open(format=FORMAT, channels=1, rate=Fs,
+    stream = pa.open(format=FORMAT, channels=1, rate=fs,
                      input=True, frames_per_buffer=mid_buf_size)
     mid_buf = []
     count = 0
@@ -128,11 +132,11 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
                 # extract features
                 # We are using the signal length as mid term window and step,
                 # in order to guarantee a mid-term feature sequence of len 1
-                [mt_feats, _, _] = mF.mid_feature_extraction(x, Fs,
+                [mt_feats, _, _] = mF.mid_feature_extraction(x, fs,
                                                              seg_len,
                                                              seg_len,
-                                                             round(Fs * st_win),
-                                                             round(Fs * st_step)
+                                                             round(fs * st_win),
+                                                             round(fs * st_step)
                                                              )
                 cur_fv = (mt_feats[:, 0] - MEAN) / STD
                 # classify vector:
@@ -148,9 +152,9 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
                 # Compute spectrogram
                 if show_spec:
                     (spec, t_axis, freq_axis_s) = sF.spectrogram(mid_buf, 
-                                                                 Fs, 
-                                                                 0.050 * Fs,
-                                                                 0.050 * Fs)
+                                                                 fs, 
+                                                                 0.050 * fs,
+                                                                 0.050 * fs)
                     freq_axis_s = numpy.array(freq_axis_s)  # frequency axis
                     # most dominant frequencies (for each short-term window):
                     dominant_freqs = freq_axis_s[numpy.argmax(spec, axis=1)]
@@ -161,9 +165,9 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
                 # Compute chromagram                        
                 if show_chroma:
                     (chrom, TimeAxisC, freq_axis_c) = sF.chromagram(mid_buf, 
-                                                                    Fs, 
-                                                                    0.050 * Fs,
-                                                                    0.050 * Fs)
+                                                                    fs, 
+                                                                    0.050 * fs,
+                                                                    0.050 * fs)
                     freq_axis_c = numpy.array(freq_axis_c)  
                     # most dominant chroma classes:
                     dominant_freqs_c = freq_axis_c[numpy.argmax(chrom,
@@ -215,7 +219,7 @@ def record_audio(block_size, Fs=8000, show_spec=False, show_chroma=False,
                                             "{0:.2f}_".format(e_time).zfill(8) +
                                             win_class + ".wav")
                     #shutil.copyfile("temp.wav", out_file)
-                    wavfile.write(out_file, Fs, x)
+                    wavfile.write(out_file, fs, x)
 
                 textIm = numpy.zeros((status_h, plot_w, 3))
                 statusStrTime = "time: %.1f sec" % e_time + \
@@ -257,9 +261,9 @@ def parse_arguments():
 
 if __name__ == "__main__":
     args = parse_arguments()
-    Fs = args.samplingrate
-    if Fs != 8000:
+    fs = args.samplingrate
+    if fs != 8000:
         print("Warning! Segment classifiers have been trained on 8KHz samples. "
               "Therefore results will be not optimal. ")
-    record_audio(args.blocksize, Fs, args.spectrogram,
+    record_audio(args.blocksize, fs, args.spectrogram,
                  args.chromagram, args.record_segments, args.record_all)
