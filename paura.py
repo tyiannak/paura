@@ -140,8 +140,8 @@ def record_audio(block_size, fs=8000, show_spec=False, show_chroma=False,
                                                              )
                 cur_fv = (mt_feats[:, 0] - MEAN) / STD
                 # classify vector:
-                [res, prob] = aT.classifierWrapper(classifier, "svm_rbf",
-                                                   cur_fv)
+                [res, prob] = aT.classifier_wrapper(classifier, "svm_rbf",
+                                                    cur_fv)
                 win_class = class_names[int(res)]
                 win_prob = prob[int(res)]
 
