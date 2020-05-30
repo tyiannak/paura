@@ -121,119 +121,118 @@ def record_audio(block_size, fs=8000, show_spec=False, show_chroma=False,
             mid_buf = mid_buf + cur_win
             del cur_win
 
-            if 1:
-                # time since recording started:
-                e_time = (time.time() - time_start)
-                # data-driven time
-                data_time = (count + 1) * block_size
-                x = numpy.int16(mid_buf)
-                seg_len = len(x)
+            # time since recording started:
+            e_time = (time.time() - time_start)
+            # data-driven time
+            data_time = (count + 1) * block_size
+            x = numpy.int16(mid_buf)
+            seg_len = len(x)
 
-                # extract features
-                # We are using the signal length as mid term window and step,
-                # in order to guarantee a mid-term feature sequence of len 1
-                [mt_feats, _, _] = mF.mid_feature_extraction(x, fs,
-                                                             seg_len,
-                                                             seg_len,
-                                                             round(fs * st_win),
-                                                             round(fs * st_step)
-                                                             )
-                cur_fv = (mt_feats[:, 0] - MEAN) / STD
-                # classify vector:
-                [res, prob] = aT.classifier_wrapper(classifier, "svm_rbf",
-                                                    cur_fv)
-                win_class = class_names[int(res)]
-                win_prob = prob[int(res)]
+            # extract features
+            # We are using the signal length as mid term window and step,
+            # in order to guarantee a mid-term feature sequence of len 1
+            [mt_feats, _, _] = mF.mid_feature_extraction(x, fs,
+                                                         seg_len,
+                                                         seg_len,
+                                                         round(fs * st_win),
+                                                         round(fs * st_step)
+                                                         )
+            cur_fv = (mt_feats[:, 0] - MEAN) / STD
+            # classify vector:
+            [res, prob] = aT.classifier_wrapper(classifier, "svm_rbf",
+                                                cur_fv)
+            win_class = class_names[int(res)]
+            win_prob = prob[int(res)]
 
-                if logs_all:
-                    all_data += mid_buf
-                mid_buf = numpy.double(mid_buf)
+            if logs_all:
+                all_data += mid_buf
+            mid_buf = numpy.double(mid_buf)
 
-                # Compute spectrogram
-                if show_spec:
-                    (spec, t_axis, freq_axis_s) = sF.spectrogram(mid_buf, 
-                                                                 fs, 
-                                                                 0.050 * fs,
-                                                                 0.050 * fs)
-                    freq_axis_s = numpy.array(freq_axis_s)  # frequency axis
-                    # most dominant frequencies (for each short-term window):
-                    dominant_freqs = freq_axis_s[numpy.argmax(spec, axis=1)]
-                    # get average most dominant freq
-                    max_freq = numpy.mean(dominant_freqs)
-                    max_freq_std = numpy.std(dominant_freqs)
+            # Compute spectrogram
+            if show_spec:
+                (spec, t_axis, freq_axis_s) = sF.spectrogram(mid_buf,
+                                                             fs,
+                                                             0.050 * fs,
+                                                             0.050 * fs)
+                freq_axis_s = numpy.array(freq_axis_s)  # frequency axis
+                # most dominant frequencies (for each short-term window):
+                dominant_freqs = freq_axis_s[numpy.argmax(spec, axis=1)]
+                # get average most dominant freq
+                max_freq = numpy.mean(dominant_freqs)
+                max_freq_std = numpy.std(dominant_freqs)
 
-                # Compute chromagram                        
-                if show_chroma:
-                    (chrom, TimeAxisC, freq_axis_c) = sF.chromagram(mid_buf, 
-                                                                    fs, 
-                                                                    0.050 * fs,
-                                                                    0.050 * fs)
-                    freq_axis_c = numpy.array(freq_axis_c)  
-                    # most dominant chroma classes:
-                    dominant_freqs_c = freq_axis_c[numpy.argmax(chrom,
-                                                               axis=1)]
-                    # get most common among all short-term windows
-                    max_freqC = most_common(dominant_freqs_c)[0]
+            # Compute chromagram
+            if show_chroma:
+                (chrom, TimeAxisC, freq_axis_c) = sF.chromagram(mid_buf,
+                                                                fs,
+                                                                0.050 * fs,
+                                                                0.050 * fs)
+                freq_axis_c = numpy.array(freq_axis_c)
+                # most dominant chroma classes:
+                dominant_freqs_c = freq_axis_c[numpy.argmax(chrom,
+                                                           axis=1)]
+                # get most common among all short-term windows
+                max_freqC = most_common(dominant_freqs_c)[0]
 
-                # Plot signal window
-                signalPlotCV = plotCV(scipy.signal.resample(mid_buf + 16000, 
-                                                            plot_w),
-                                      plot_w, plot_h, 32000)
-                cv2.imshow('Signal', signalPlotCV)
-                cv2.moveWindow('Signal', 50, status_h + 50)
+            # Plot signal window
+            signalPlotCV = plotCV(scipy.signal.resample(mid_buf + 16000,
+                                                        plot_w),
+                                  plot_w, plot_h, 32000)
+            cv2.imshow('Signal', signalPlotCV)
+            cv2.moveWindow('Signal', 50, status_h + 50)
 
-                # Show spectrogram
-                if show_spec:
-                    i_spec = numpy.array(spec.T * 255, dtype=numpy.uint8)
-                    i_spec2 = cv2.resize(i_spec, (plot_w, plot_h),
-                                        interpolation=cv2.INTER_CUBIC)
-                    i_spec2 = cv2.applyColorMap(i_spec2, cv2.COLORMAP_JET)
-                    cv2.putText(i_spec2, "max_freq: %.0f Hz" % max_freq, 
-                                (0, 11), cv2.FONT_HERSHEY_PLAIN, 
-                                1, (200, 200, 200))
-                    cv2.imshow('Spectrogram', i_spec2)
-                    cv2.moveWindow('Spectrogram', 50,
-                                   plot_h + status_h + 60)
-                # Show chromagram
-                if show_chroma:
-                    i_chroma = numpy.array((chrom.T /
-                                            chrom.max()) * 255,
-                                           dtype=numpy.uint8)
-                    i_chroma2 = cv2.resize(i_chroma, (plot_w, plot_h),
-                                           interpolation=cv2.INTER_CUBIC)
-                    i_chroma2 = cv2.applyColorMap(i_chroma2, cv2.COLORMAP_JET)
-                    cv2.putText(i_chroma2, "max_freqC: %s" % max_freqC, (0, 11),
-                                cv2.FONT_HERSHEY_PLAIN, 1, (200, 200, 200))
-                    cv2.imshow('Chroma', i_chroma2)
-                    cv2.moveWindow('Chroma', 50,
-                                   2 * plot_h + status_h + 60)
-
-                # Activity Detection:
-                print("{0:.2f}\t{1:s}\t{2:.2f}".format(e_time,
-                                                       win_class,
-                                                       win_prob))
-
-                if log_sounds:
-                    # TODO: log audio files
-                    out_file = os.path.join(out_folder,
-                                            "{0:.2f}_".format(e_time).zfill(8) +
-                                            win_class + ".wav")
-                    #shutil.copyfile("temp.wav", out_file)
-                    wavfile.write(out_file, fs, x)
-
-                textIm = numpy.zeros((status_h, plot_w, 3))
-                statusStrTime = "time: %.1f sec" % e_time + \
-                                " - data time: %.1f sec" % data_time + \
-                                " - loss : %.1f sec" % (e_time - data_time)
-                cv2.putText(textIm, statusStrTime, (0, 11),
+            # Show spectrogram
+            if show_spec:
+                i_spec = numpy.array(spec.T * 255, dtype=numpy.uint8)
+                i_spec2 = cv2.resize(i_spec, (plot_w, plot_h),
+                                    interpolation=cv2.INTER_CUBIC)
+                i_spec2 = cv2.applyColorMap(i_spec2, cv2.COLORMAP_JET)
+                cv2.putText(i_spec2, "max_freq: %.0f Hz" % max_freq,
+                            (0, 11), cv2.FONT_HERSHEY_PLAIN,
+                            1, (200, 200, 200))
+                cv2.imshow('Spectrogram', i_spec2)
+                cv2.moveWindow('Spectrogram', 50,
+                               plot_h + status_h + 60)
+            # Show chromagram
+            if show_chroma:
+                i_chroma = numpy.array((chrom.T /
+                                        chrom.max()) * 255,
+                                       dtype=numpy.uint8)
+                i_chroma2 = cv2.resize(i_chroma, (plot_w, plot_h),
+                                       interpolation=cv2.INTER_CUBIC)
+                i_chroma2 = cv2.applyColorMap(i_chroma2, cv2.COLORMAP_JET)
+                cv2.putText(i_chroma2, "max_freqC: %s" % max_freqC, (0, 11),
                             cv2.FONT_HERSHEY_PLAIN, 1, (200, 200, 200))
-                cv2.putText(textIm, win_class, (0, 33),
-                            cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255))
-                cv2.imshow("Status", textIm)
-                cv2.moveWindow("Status", 50, 0)
-                mid_buf = []
-                ch = cv2.waitKey(10)
-                count += 1
+                cv2.imshow('Chroma', i_chroma2)
+                cv2.moveWindow('Chroma', 50,
+                               2 * plot_h + status_h + 60)
+
+            # Activity Detection:
+            print("{0:.2f}\t{1:s}\t{2:.2f}".format(e_time,
+                                                   win_class,
+                                                   win_prob))
+
+            if log_sounds:
+                # TODO: log audio files
+                out_file = os.path.join(out_folder,
+                                        "{0:.2f}_".format(e_time).zfill(8) +
+                                        win_class + ".wav")
+                #shutil.copyfile("temp.wav", out_file)
+                wavfile.write(out_file, fs, x)
+
+            textIm = numpy.zeros((status_h, plot_w, 3))
+            statusStrTime = "time: %.1f sec" % e_time + \
+                            " - data time: %.1f sec" % data_time + \
+                            " - loss : %.1f sec" % (e_time - data_time)
+            cv2.putText(textIm, statusStrTime, (0, 11),
+                        cv2.FONT_HERSHEY_PLAIN, 1, (200, 200, 200))
+            cv2.putText(textIm, win_class, (0, 33),
+                        cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255))
+            cv2.imshow("Status", textIm)
+            cv2.moveWindow("Status", 50, 0)
+            mid_buf = []
+            ch = cv2.waitKey(10)
+            count += 1
         except IOError:
             print("Error recording")
 
