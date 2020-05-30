@@ -1,3 +1,5 @@
 PyAudio==0.2.11
+numpy==1.18.4
 scipy==1.4.1
-numpy==1.18.1
+pyAudioAnalysis==0.3.4
+scikit_learn==0.21.3
