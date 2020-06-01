@@ -3,4 +3,4 @@ numpy==1.18.4
 scipy==1.4.1
 pyAudioAnalysis==0.3.4
 scikit_learn==0.21.3
-termplotlib=0.3.1
+termplotlib==0.3.1
