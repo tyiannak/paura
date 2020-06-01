@@ -27,7 +27,7 @@ consider the following:
  * Install pysound and opencv for python: `pip3 install pyaudio opencv-python`
  * brew install gnuplot (required only for `paura_lite.py`)
 
-## Execution and outputs
+## Execution and outputs for `paura.py`
 
 ### Execution example
 The following command records audio data using blocks of 1sec (segments). 
@@ -80,6 +80,57 @@ singe audio file. Not to be used for very long recordings (many hours), due to
 memory issues. In the above example, the overall audio recording is stored in 
 `2020_01_26_11:16PM.wav`
 
+## Execution and outputs for `paura_lite.py`
+This script takes no arguments and just records sounds, 
+while visualizing each segment's spectrogram in the console.
+```
+python3 paura_lite.py
+```
+
+Sample output (for one of the recorded windows).
+```
+0 Hz     ███▊
+100 Hz   █████████▉
+200 Hz   █████▎
+300 Hz   ███████▋
+400 Hz   ███████████▌
+500 Hz   ████▊
+600 Hz   █████▍
+700 Hz   ██████▉
+800 Hz   ████
+900 Hz   ██▋
+1000 Hz  █████▍
+1100 Hz  ███
+1200 Hz  ███▉
+1300 Hz  ██████
+1400 Hz  ██████▌
+1500 Hz  █████████
+1600 Hz  ██████████████
+1700 Hz  ██████▌
+1800 Hz  ████
+1900 Hz  █▋
+2000 Hz  █▌
+2100 Hz  ██▏
+2200 Hz  ███▊
+2300 Hz  ████████▎
+2400 Hz  ████████████▌
+2500 Hz  █████▉
+2600 Hz  ████▊
+2700 Hz  ██▉
+2800 Hz  ██▏
+2900 Hz  ███▎
+3000 Hz  █████▎
+3100 Hz  ███
+3200 Hz  ██▎
+3300 Hz  ██▊
+3400 Hz  ███▋
+3500 Hz  ██▏
+3600 Hz  █▌
+3700 Hz  █▊
+3800 Hz  █▍
+3900 Hz  █▋
+
+```
 
 ## Ongoing work
 Export selected features and mid-term representations
