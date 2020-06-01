@@ -2,16 +2,15 @@
 # pAura: Python AUdio Recording and Analysis
 
 ## News
- * [2020/01/02] python3 support added 
+ * [2020/06/01] `paura_lite.py` added: a very simple command-line recorder and real-time visualization
+ * [2020/01/02] python3 support added  
 
 ## General
-```paura``` is a Python tool for recording and analyzing sounds in an online 
+ - ```paura.py``` is a Python tool for recording and analyzing sounds in an online 
 and continuous manner. `paura` uses pySound (based on portaudio), so it can 
 both be used in Linux and MacOs environments. 
-
-(Old code, now available in paura_old_als.py uses alsaaudio to capture sound 
- and is therefore to be used only under Linux environments)
-
+ - `paura_lite.py` is a very simple command-line recorder and real-time visualization
+  
 ## Installation
 Before downloading this library and setting up the pip requirements, please 
 consider the following:
@@ -20,12 +19,13 @@ consider the following:
  * Install [pyAudioAnalysis](https://github.com/tyiannak/pyAudioAnalysis/).
  * Install portaudio: `sudo apt-get install libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0`
  * Install opencv for python: `sudo apt-get install python-opencv`
+ * sudo apt-get install gnuplot (required only for `paura_lite.py`)
 
 ### Requirements for MacOs
  * Install [pyAudioAnalysis](https://github.com/tyiannak/pyAudioAnalysis/).
  * Install portaudio: `brew install portaudio`
  * Install pysound and opencv for python: `pip3 install pyaudio opencv-python`
-
+ * brew install gnuplot (required only for `paura_lite.py`)
 
 ## Execution and outputs
 
