@@ -34,7 +34,7 @@ while 1:  # for each recorded window (until ctr+c) is pressed
     # get total energy of the current window and compute a normalization
     # factor (to be used for visualizing the maximum spectrogram value)
     energy = np.mean(x ** 2)
-    max_energy = 0.02  # energy for which the bars are set to max
+    max_energy = 0.01  # energy for which the bars are set to max
     max_width_from_energy = int((energy / max_energy) * int(columns)) + 1
     if max_width_from_energy > int(columns) - 10:
         max_width_from_energy = int(columns) - 10
