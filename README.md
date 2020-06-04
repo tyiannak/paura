@@ -132,6 +132,10 @@ Sample output (for one of the recorded windows).
 
 ```
 
+A demo video of `paura_lite.py` is also available in the following video:
+
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/YEi9AmA-07s/0.jpg)](https://www.youtube.com/watch?v=YEi9AmA-07s)
+
 ## Ongoing work
 Export selected features and mid-term representations
 
