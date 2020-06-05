@@ -2,6 +2,7 @@
 # pAura: Python AUdio Recording and Analysis
 
 ## News
+ * [2020-06-05] Published medium article [Basic Audio Handling: How to handle and process audio files in command-line and through basic Python programming](https://medium.com/behavioral-signals-ai/basic-audio-handling-d4cc9c70d64d). Please refer to this as introductory material for handling audio data.
  * [2020/06/01] `paura_lite.py` added: a very simple command-line recorder and real-time visualization
  * [2020/01/02] python3 support added  
 
