@@ -146,6 +146,7 @@ Export selected features and mid-term representations
 <img src="https://tyiannak.github.io/files/3.JPG" align="left" height="100"/>
 
 [Theodoros Giannakopoulos](https://tyiannak.github.io),
-Director of Machine Learning at [Behavioral Signals](https://behavioralsignals.com)
+Principal Researcher of Multimodal Machine Learning at the [Multimedia Analysis Group of the Computational Intelligence Lab (MagCIL)](https://labs-repos.iit.demokritos.gr/MagCIL/index.html) of the Institute of Informatics and Telecommunications, of the National Center for Scientific Research "Demokritos"
+
 
 
