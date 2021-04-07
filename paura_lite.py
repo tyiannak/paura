@@ -8,9 +8,14 @@ import struct
 import scipy.fftpack as scp
 import termplotlib as tpl
 import os
+import sys
 
 # get window's dimensions
-rows, columns = os.popen('stty size', 'r').read().split()
+if sys.platform == 'win32':
+    import shutil
+    columns, rows = shutil.get_terminal_size((80, 20))
+else:
+    rows, columns = os.popen('stty size', 'r').read().split()
 
 buff_size = 0.2          # window size in seconds
 wanted_num_of_bins = 40  # number of frequency bins to display
