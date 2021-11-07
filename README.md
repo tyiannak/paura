@@ -2,8 +2,9 @@
 # pAura: Python AUdio Recording and Analysis
 
 ## News
- * [2020-07-20] Related article: [How to Use Machine Learning to Color Your Lighting Based on Music Mood](https://hackernoon.com/how-to-use-machine-learning-to-color-your-lighting-based-on-music-mood-bi163u8l). 
- * [2020-06-05] Read [this article titled "Basic Audio Handling"](https://hackernoon.com/audio-handling-basics-how-to-process-audio-files-using-python-cli-jo283u3y) for an intro to audio data handing, on [hackernoon](https://hackernoon.com/audio-handling-basics-how-to-process-audio-files-using-python-cli-jo283u3y).
+ * [2021-08-06] [deep-audio-features](https://github.com/tyiannak/deep_audio_features) deep audio classification and feature extraction using CNNs and Pytorch 
+ * [2020-06-05] Read [this article titled "Basic Audio Handling"](https://medium.com/behavioral-signals-ai/basic-audio-handling-d4cc9c70d64d)
+ * [2020-06-05] Read [this article titled "Intro to Audio Analysis: Recognizing Sounds Using Machine Learning"](https://medium.com/behavioral-signals-ai/intro-to-audio-analysis-recognizing-sounds-using-machine-learning-20fd646a0ec5)
  * [2020/06/01] `paura_lite.py` added: a very simple command-line recorder and real-time visualization
  * [2020/01/02] python3 support added  
 
