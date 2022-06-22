@@ -1,6 +1,6 @@
 opencv_python==4.2.0.34
 termplotlib==0.3.1
 PyAudio==0.2.11
-numpy==1.18.1
+numpy==1.22.0
 scipy==1.4.1
 pyAudioAnalysis==0.3.6
