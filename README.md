@@ -3,13 +3,6 @@
 
 > Developed at [**MagCIL**](https://magcil.github.io), the Multimodal Analysis Group of the Institute of Informatics and Telecommunications, [NCSR "Demokritos"](https://www.demokritos.gr/), Athens, Greece.
 
-## News
- * [2021-08-06] [deep-audio-features](https://github.com/tyiannak/deep_audio_features) deep audio classification and feature extraction using CNNs and Pytorch 
- * [2020-06-05] Read [this article titled "Basic Audio Handling"](https://medium.com/behavioral-signals-ai/basic-audio-handling-d4cc9c70d64d)
- * [2020-06-05] Read [this article titled "Intro to Audio Analysis: Recognizing Sounds Using Machine Learning"](https://medium.com/behavioral-signals-ai/intro-to-audio-analysis-recognizing-sounds-using-machine-learning-20fd646a0ec5)
- * [2020/06/01] `paura_lite.py` added: a very simple command-line recorder and real-time visualization
- * [2020/01/02] python3 support added  
-
 ## General
  - ```paura.py``` is a Python tool for recording and analyzing sounds in an online 
 and continuous manner. `paura` uses pySound (based on portaudio), so it can 
@@ -148,9 +141,7 @@ Export selected features and mid-term representations
 <img src="https://tyiannak.github.io/files/3.JPG" align="left" height="100"/>
 
 [Theodoros Giannakopoulos](https://tyiannak.github.io),
-Principal Researcher of Multimodal Machine Learning at the [Multimedia Analysis Group of the Computational Intelligence Lab (MagCIL)](https://labs-repos.iit.demokritos.gr/MagCIL/index.html) of the Institute of Informatics and Telecommunications, of the National Center for Scientific Research "Demokritos"
-
-
+Director of Research in Multimodal Machine Learning at [MagCIL](https://magcil.github.io), the Multimodal Analysis Group of the Institute of Informatics and Telecommunications, of the National Center for Scientific Research "Demokritos"
 
 
 ## About MagCIL
